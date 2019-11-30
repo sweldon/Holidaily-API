@@ -1,0 +1,4 @@
+Django==2.2.7
+djangorestframework==3.10.3
+pre-commit==1.20.0
+Pygments==2.5.2
