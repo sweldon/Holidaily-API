@@ -21,22 +21,22 @@ def api_root(request, format=None):
 class MonthList(generics.ListCreateAPIView):
     queryset = Month.objects.all()
     serializer_class = MonthSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class MonthDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Month.objects.all()
     serializer_class = MonthSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class UserList(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
