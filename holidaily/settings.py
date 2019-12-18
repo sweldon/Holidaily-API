@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "api",
     "rest_framework.authtoken",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -79,10 +80,10 @@ WSGI_APPLICATION = "holidaily.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ["holidaily_db_name"],
-        "USER": os.environ["holidaily_db_user"],
-        "PASSWORD": os.environ["holidaily_db_pass"],
-        "HOST": os.environ["holidaily_db_host"],
+        "NAME": os.environ["db_name"],
+        "USER": os.environ["db_user"],
+        "PASSWORD": os.environ["db_pass"],
+        "HOST": os.environ["db_host"],
         "PORT": "3306",
         "OPTIONS": {"charset": "utf8mb4"},
     }
