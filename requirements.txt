@@ -3,3 +3,4 @@ djangorestframework==3.10.3
 pre-commit==1.20.0
 Pygments==2.5.2
 mysqlclient==1.4.6
+factory_boy==2.12.0
