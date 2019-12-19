@@ -15,8 +15,7 @@ from django.utils import six
 
 
 class UserLoginView(APIView):
-    @staticmethod
-    def post(request):
+    def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
         device_id = request.data.get("device_id", None)
