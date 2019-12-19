@@ -7,13 +7,12 @@ from api.models import UserProfile
 class UserFactory(factory.django.DjangoModelFactory):
     username = factory.Sequence(lambda n: f"UserName{n}")
     email = factory.Sequence(lambda n: f"test_user_{n}@example.com")
+    is_active = True
 
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
         if not create:
-            # Simple build, do nothing.
             return
-
         if extracted:
             self.set_password(extracted)
 
