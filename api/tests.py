@@ -3,6 +3,7 @@ from api import factories
 from rest_framework import status as rest_status
 from api.constants import NO_DEVICE_ERROR
 from django.contrib.auth.models import User
+from django.core import mail
 
 
 class UserLoginTest(APITestCase):
@@ -46,7 +47,7 @@ class UserRegisterTest(APITestCase):
     def setUp(self):
         self.username = "test_user"
         self.password = "password123"
-        self.email = "sdweldon4@gmail.com"
+        self.email = "test@test.com"
         self.register_url = "/accounts/register/"
         self.login_url = "/accounts/login/"
         self.device_id = "deviceId12456"
@@ -63,6 +64,21 @@ class UserRegisterTest(APITestCase):
         )
         self.assertEqual(response.status_code, rest_status.HTTP_200_OK)
         # User followed activation link
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, "Welcome to Holidaily!")
+        self.assertEqual(mail.outbox[0].to, [self.email])
+        response = self.client.post(
+            self.login_url,
+            {
+                "username": self.username,
+                "password": self.password,
+                "device_id": self.device_id,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, rest_status.HTTP_401_UNAUTHORIZED)
+
+        # Simulate user following activation link
         user = User.objects.get(username=self.username)
         user.is_active = True
         user.save()

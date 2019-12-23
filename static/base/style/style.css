@@ -1,0 +1,13 @@
+body {
+    background-color: #F7F7F7;
+}
+.container{
+    max-width: 1000px;
+    margin: 0 auto;
+}
+.denied{
+    padding: 25px;
+    background-color: #FFFFFF;
+    border-radius: 2px;
+    box-shadow: 0 0 1px #d0d0d0;
+}
