@@ -7,9 +7,9 @@ from django.contrib.auth.models import User
 from api.constants import DISALLOWED_EMAILS
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
 from django.core.mail import EmailMessage
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
 
@@ -63,25 +63,6 @@ class TokenGenerator(PasswordResetTokenGenerator):
 class UserRegisterView(APIView):
     account_activation_token = TokenGenerator()
 
-    def activate(self, request, uidb64, token):
-        try:
-            uid = force_text(urlsafe_base64_decode(uidb64))
-            user = User.objects.filter(pk=uid)[0]
-        except IndexError:
-            user = None
-        if user and self.account_activation_token.check_token(user, token):
-            user.is_active = True
-            user.save()
-            # TODO: notify the user with the frontend
-            return Response(
-                {"message": "Activation successful"}, status=rest_status.HTTP_200_OK
-            )
-        else:
-            return Response(
-                {"message": "Activation unsuccessful"},
-                status=rest_status.HTTP_400_BAD_REQUEST,
-            )
-
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -100,7 +81,7 @@ class UserRegisterView(APIView):
             current_site = get_current_site(request)
             mail_subject = "Welcome to Holidaily!"
             message = render_to_string(
-                "accounts/activate.html",
+                "portal/activate.html",
                 {
                     "user": user,
                     "domain": current_site.domain,
@@ -109,7 +90,7 @@ class UserRegisterView(APIView):
                 },
             )
             activation_email = EmailMessage(mail_subject, message, to=[email])
-            activation_email.send()
+            activation_email.send(fail_silently=False)
             return Response({"message": "OK"}, status=rest_status.HTTP_200_OK)
         else:
             return Response(

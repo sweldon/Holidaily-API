@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "api",
     "rest_framework.authtoken",
     "accounts",
+    "portal",
 ]
 
 MIDDLEWARE = [
@@ -136,3 +137,6 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "holidailyapp@gmail.com"
 EMAIL_HOST_PASSWORD = os.environ["email_pass"]
 EMAIL_PORT = 587
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(os.path.dirname(__file__), "../static")
+STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/")),)
