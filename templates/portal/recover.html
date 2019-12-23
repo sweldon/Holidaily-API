@@ -1,0 +1,38 @@
+{% load staticfiles %}
+<html>
+    <title>Holidaily</title>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/static/base/style/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="/static/base/style/style.css?v={{version}}" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="card card-container">
+            <h6 class='login_title text-center'><img width="100" height="100" style="margin-top:10px;" src='/static/base/img/holidaily-logo-1-inverted.png' /></h6>
+
+                <form id="recoverForm" name="recoverForm" action="/portal/recover/" method="post">
+                    {% csrf_token %}
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}" />
+                        {% endif %}
+                        <input style="width: 100%; outline:none;" type="text" id="email" name="email" placeholder="Email for reset link" required>
+                        {% if result == 202 %}
+                        <div style="color:green; text-align: center;margin-top: 5px;">Please check your email</div>
+                        {% elif result == 404 %}
+                        <div style="color:red; text-align: center;margin-top: 5px;">Couldn't find an account associated with that email</div>
+                        {% elif result == 500 %}
+                        <div style="color:red; text-align: center;margin-top: 5px;">Something went wrong on our end. Please try again</div>
+                    {% endif %}
+                    <div class="btncont">
+                        <br />
+                        <center>
+                        <a name='submitform' class='btn btn-lg btn-primary' style="font-size: 9pt;height: 40px; line-height: 20px;" href="#" onclick="$('#recoverForm').submit();"> send link </a>
+                        </center>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>
