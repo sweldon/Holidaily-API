@@ -39,9 +39,12 @@ class HolidayList(generics.GenericAPIView):
 
     def get(self, request):
         top_holidays = request.GET.get("top", None)
+        by_name = request.GET.get("name", None)
         if top_holidays:
             # Top Holidays
             holidays = Holiday.objects.all().order_by("-votes")[:10]
+        elif by_name:
+            holidays = Holiday.objects.filter(name=by_name)
         else:
             # Default list of today's holidays
             today = timezone.now()
