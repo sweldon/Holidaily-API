@@ -13,13 +13,6 @@ LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
 STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
 
 
-class Month(models.Model):
-    name = models.CharField(max_length=10)
-
-    def __str__(self):
-        return self.name
-
-
 class UserProfile(models.Model):
     user = models.ForeignKey(
         User,
@@ -44,3 +37,12 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     """
     if created:
         Token.objects.create(user=instance)
+
+
+class Holiday(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    votes = models.IntegerField(default=0)
+    blurb = models.TextField(null=True)
+    image = models.TextField(null=True)
+    date = models.DateField(null=False)
