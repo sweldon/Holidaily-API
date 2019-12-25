@@ -1,13 +1,18 @@
-from .models import Holiday
-from .serializers import UserSerializer, HolidaySerializer
+from .models import Holiday, UserHolidayVotes, Comment, UserNotifications
+from .serializers import (
+    UserSerializer,
+    HolidaySerializer,
+    CommentSerializer,
+    UserNotificationsSerializer,
+)
 from django.contrib.auth.models import User
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import generics, permissions
 from datetime import timedelta
 from django.utils import timezone
+from django.db.models import Q
 
 
 @api_view(["GET"])
@@ -55,8 +60,58 @@ class HolidayList(generics.GenericAPIView):
         results = {"results": serializer.data}
         return Response(results)
 
+    def post(self, request):
+        username = request.POST.get("username", None)
+        holiday_id = request.POST.get("id", None)
+
+        if holiday_id:
+            # Single holiday
+            holidays = Holiday.objects.filter(id=holiday_id)
+        else:
+            # List of holidays
+            today = timezone.now()
+            holidays = Holiday.objects.filter(
+                date__range=[today - timedelta(days=7), today]
+            )
+
+        serializer = HolidaySerializer(holidays, many=True)
+        if username:
+            user = User.objects.get(username=username)
+            for h in serializer.data:
+                celebrating = UserHolidayVotes.objects.filter(
+                    (Q(user=user) & Q(holiday__id=h["id"]))
+                    & (Q(choice=1) | Q(choice=4))
+                ).exists()
+                h["celebrating"] = celebrating
+
+        results = {"results": serializer.data}
+        return Response(results)
+
 
 class HolidayDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+
+class CommentDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+class UserNotificationsView(generics.GenericAPIView):
+    queryset = UserNotifications.objects.all()
+    serializer_class = UserNotificationsSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        username = request.GET.get("username", None)
+        notifications = (
+            UserNotifications.objects.filter(user__username=username)
+            .exclude(notification_type=1)
+            .order_by("-id")[:20]
+        )
+        serializer = UserNotificationsSerializer(notifications, many=True)
+        results = {"results": serializer.data}
+        return Response(results)
