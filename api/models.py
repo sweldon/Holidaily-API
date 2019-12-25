@@ -21,6 +21,10 @@ VOTE_CHOICES = (
     (4, "up_from_down"),
     (5, "down_from_up"),
 )
+NOTIFICATION_TYPES = (
+    (0, "comment"),
+    (1, "news"),
+)
 
 
 class UserProfile(models.Model):
@@ -65,6 +69,9 @@ class Holiday(models.Model):
         time_ago = timeago.format(self.date, timezone.now().today())
         return normalize_time(time_ago, "holiday")
 
+    def __str__(self):
+        return self.name
+
 
 class Comment(models.Model):
     content = models.TextField()
@@ -81,6 +88,9 @@ class Comment(models.Model):
         time_ago = timeago.format(self.timestamp, timezone.now())
         return normalize_time(time_ago, "comment")
 
+    def __str__(self):
+        return f"{self.content[:100]}..."
+
 
 class UserHolidayVotes(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
@@ -92,3 +102,13 @@ class UserCommentVotes(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
     choice = models.IntegerField(choices=VOTE_CHOICES)
+
+
+class UserNotifications(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    notification_id = models.IntegerField()  # FK to associated notification_type
+    notification_type = models.IntegerField(choices=NOTIFICATION_TYPES)
+    read = models.BooleanField(default=False)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=50)

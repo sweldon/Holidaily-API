@@ -1,5 +1,10 @@
-from .models import Holiday, UserHolidayVotes
-from .serializers import UserSerializer, HolidaySerializer
+from .models import Holiday, UserHolidayVotes, Comment, UserNotifications
+from .serializers import (
+    UserSerializer,
+    HolidaySerializer,
+    CommentSerializer,
+    UserNotificationsSerializer,
+)
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -87,3 +92,26 @@ class HolidayDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+
+class CommentDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+
+class UserNotificationsView(generics.GenericAPIView):
+    queryset = UserNotifications.objects.all()
+    serializer_class = UserNotificationsSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        username = request.GET.get("username", None)
+        notifications = (
+            UserNotifications.objects.filter(user__username=username)
+            .exclude(notification_type=1)
+            .order_by("-id")[:20]
+        )
+        serializer = UserNotificationsSerializer(notifications, many=True)
+        results = {"results": serializer.data}
+        return Response(results)

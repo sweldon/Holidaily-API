@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Holiday, Comment, UserProfile
+from .models import Holiday, Comment, UserProfile, UserNotifications
 from django.contrib.auth.models import User
 
 
@@ -61,4 +61,26 @@ class HolidaySerializer(serializers.ModelSerializer):
             "comments",
             "num_comments",
             "time_since",
+        )
+
+
+class UserNotificationsSerializer(serializers.ModelSerializer):
+    user_pk = serializers.ReadOnlyField(source="user.pk")
+    notification_id = serializers.IntegerField()
+    notification_type = serializers.IntegerField()
+    read = serializers.BooleanField()
+    content = serializers.CharField()
+    timestamp = serializers.DateTimeField()
+    title = serializers.CharField()
+
+    class Meta:
+        model = UserNotifications
+        fields = (
+            "user_pk",
+            "notification_id",
+            "notification_type",
+            "read",
+            "content",
+            "timestamp",
+            "title",
         )
