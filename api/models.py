@@ -13,6 +13,14 @@ from holidaily.utils import normalize_time
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
 STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
+VOTE_CHOICES = (
+    (0, "down"),
+    (1, "up"),
+    (2, "neutral_from_down"),
+    (3, "neutral_from_up"),
+    (4, "up_from_down"),
+    (5, "down_from_up"),
+)
 
 
 class UserProfile(models.Model):
@@ -72,3 +80,15 @@ class Comment(models.Model):
     def time_since(self):
         time_ago = timeago.format(self.timestamp, timezone.now())
         return normalize_time(time_ago, "comment")
+
+
+class UserHolidayVotes(models.Model):
+    user = models.ForeignKey(User, models.CASCADE)
+    holiday = models.ForeignKey(Holiday, on_delete=models.CASCADE)
+    choice = models.IntegerField(choices=VOTE_CHOICES)
+
+
+class UserCommentVotes(models.Model):
+    user = models.ForeignKey(User, models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    choice = models.IntegerField(choices=VOTE_CHOICES)
