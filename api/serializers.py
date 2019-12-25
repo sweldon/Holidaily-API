@@ -47,6 +47,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True)
     num_comments = serializers.IntegerField()
     time_since = serializers.CharField()
+    creator = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Holiday
@@ -61,6 +62,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "comments",
             "num_comments",
             "time_since",
+            "creator",
         )
 
 
