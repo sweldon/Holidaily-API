@@ -59,10 +59,6 @@ class Holiday(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 
     @property
-    def comments(self):
-        return self.comment_set.all()
-
-    @property
     def num_comments(self):
         return self.comment_set.all().count()
 

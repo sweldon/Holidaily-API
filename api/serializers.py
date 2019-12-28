@@ -1,6 +1,14 @@
 from rest_framework import serializers
-from .models import Holiday, Comment, UserProfile, UserNotifications
+from .models import (
+    Holiday,
+    Comment,
+    UserProfile,
+    UserNotifications,
+    UserHolidayVotes,
+    UserCommentVotes,
+)
 from django.contrib.auth.models import User
+from api.constants import UPVOTE, DOWNVOTE, UPVOTE_ONLY, DOWNVOTE_ONLY
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -22,6 +30,23 @@ class CommentSerializer(serializers.ModelSerializer):
     votes = serializers.IntegerField()
     parent = serializers.ReadOnlyField(source="self")
     time_since = serializers.CharField()
+    vote_status = serializers.SerializerMethodField()
+
+    def get_vote_status(self, obj):
+        username = self.context.get("username", None)
+        if username:
+            if UserCommentVotes.objects.filter(
+                user__username=username, comment=obj, choice__in=UPVOTE_ONLY
+            ).exists():
+                return UPVOTE
+            elif UserCommentVotes.objects.filter(
+                user__username=username, comment=obj, choice__in=DOWNVOTE_ONLY
+            ).exists():
+                return DOWNVOTE
+            else:
+                return None
+        else:
+            return None
 
     class Meta:
         model = Comment
@@ -33,6 +58,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "votes",
             "parent",
             "time_since",
+            "vote_status",
         )
 
 
@@ -44,10 +70,20 @@ class HolidaySerializer(serializers.ModelSerializer):
     blurb = serializers.CharField()
     image = serializers.CharField()
     date = serializers.DateField()
-    comments = CommentSerializer(many=True)
     num_comments = serializers.IntegerField()
     time_since = serializers.CharField()
     creator = serializers.PrimaryKeyRelatedField(read_only=True)
+    celebrating = serializers.SerializerMethodField()
+
+    def get_celebrating(self, obj):
+        username = self.context.get("username", None)
+        if username:
+            celebrating = UserHolidayVotes.objects.filter(
+                user__username=username, holiday=obj, choice__in=UPVOTE_ONLY
+            ).exists()
+            return celebrating
+        else:
+            return False
 
     class Meta:
         model = Holiday
@@ -59,10 +95,10 @@ class HolidaySerializer(serializers.ModelSerializer):
             "blurb",
             "image",
             "date",
-            "comments",
             "num_comments",
             "time_since",
             "creator",
+            "celebrating",
         )
 
 
