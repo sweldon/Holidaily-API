@@ -9,6 +9,7 @@ urlpatterns = [
     path("holidays/", views.HolidayList.as_view(), name="holiday-list"),
     path("holidays/<int:pk>/", views.HolidayDetail.as_view(), name="holiday-detail"),
     path("comments/<int:pk>/", views.CommentDetail.as_view(), name="comment-detail"),
+    path("comments/", views.CommentList.as_view(), name="comment-list"),
     path("notifications/", views.UserNotificationsView.as_view(), name="notifications"),
 ]
 

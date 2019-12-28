@@ -19,8 +19,17 @@ class HolidayAdmin(admin.ModelAdmin):
         "date",
         "num_comments",
         "time_since",
+        "creator",
     )
-    search_fields = ("name", "description", "votes", "blurb", "image", "date")
+    search_fields = (
+        "name",
+        "description",
+        "votes",
+        "blurb",
+        "image",
+        "date",
+        "creator",
+    )
 
 
 class UserProfileAdmin(admin.ModelAdmin):

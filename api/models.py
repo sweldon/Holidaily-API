@@ -55,10 +55,8 @@ class Holiday(models.Model):
     blurb = models.TextField(null=True)
     image = models.TextField(null=True)
     date = models.DateField(null=False)
-
-    @property
-    def comments(self):
-        return self.comment_set.all()
+    # Creator is null for regular holidays, set for user submitted
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 
     @property
     def num_comments(self):
