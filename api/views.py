@@ -4,6 +4,7 @@ from .models import (
     Comment,
     UserNotifications,
     UserCommentVotes,
+    UserProfile,
 )
 from .serializers import (
     UserSerializer,
@@ -28,8 +29,14 @@ from api.constants import (
     UP_FROM_DOWN,
     DOWN_FROM_UP,
 )
-from api.exceptions import RequestError
+from api.exceptions import RequestError, DeniedError
 import re
+from holidaily.settings import (
+    PUSH_ENDPOINT_ANDROID,
+    PUSH_ENDPOINT_IOS,
+    APPCENTER_API_KEY,
+)
+import requests
 
 
 @api_view(["GET"])
@@ -40,6 +47,26 @@ def api_root(request, format=None):
             "holidays": reverse("holiday-list", request=request, format=format),
         }
     )
+
+
+def add_notification(n_id, n_type, user, content, title):
+    """
+    Add a new notification for users
+    :param n_id: notification id, pk
+    :param n_type: notification type
+    :param user: user to receive notification
+    :param content: body of notification
+    :param title: title of notification
+    :return: the new notification
+    """
+    new_notification = UserNotifications.objects.create(
+        notification_id=n_id,
+        notification_type=n_type,
+        user=user,
+        content=content,
+        title=title,
+    )
+    return new_notification
 
 
 class UserList(generics.ListCreateAPIView):
@@ -182,6 +209,7 @@ class CommentDetail(APIView):
     def post(self, request, pk):
         vote = request.POST.get("vote", None)
         username = request.POST.get("username", None)
+        content = request.POST.get("content", None)
         comment = self.get_object(pk)
 
         if vote:
@@ -208,6 +236,77 @@ class CommentDetail(APIView):
                 user_vote.save()
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
+        elif content:
+            parent_id = request.POST.get("parent", None)
+            holiday_id = request.POST.get("holiday", None)
+            holiday = Holiday.objects.get(id=holiday_id)
+            parent = Comment.objects.get(id=parent_id) if parent_id else None
+            user = User.objects.get(username=username)
+
+            if UserProfile.objects.get(user=user).active:
+                new_comment = Comment(
+                    content=content,
+                    holiday_id=holiday,
+                    user=user,
+                    timestamp=timezone.now(),
+                    parent=parent,
+                )
+                new_comment.save()
+
+                mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
+                devices = []
+                notifications = []
+                for user_mention in mentions:
+                    user_mention_obj = User.objects.filter(
+                        username=user_mention
+                    ).first()
+                    if user_mention_obj:
+                        user_mention_device = UserProfile.objects.get(
+                            user=user
+                        ).device_id
+                        if user_mention_device:
+                            devices.append(user_mention_device)
+                            n = UserNotifications(
+                                notification_id=new_comment.id,
+                                notification_type="Comment",
+                                user=user_mention_obj,
+                                content=f"{username} mentioned you in a comment on {holiday.name}",
+                                title="",
+                            )
+                            notifications.append(n)
+                UserNotifications.objects.bulk_create(notifications)
+                new_comment_time_since = new_comment.timestamp.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                comment_content = content.encode("ascii", "ignore").decode("ascii")
+                holiday_name = holiday.name.encode("ascii", "ignore").decode("ascii")
+                data = {
+                    "notification_content": {
+                        "name": "Comment Mention",
+                        "title": "{} mentioned you in a comment".format(username),
+                        "body": str(comment_content),
+                        "custom_data": {
+                            "comment_id": int(new_comment.id),
+                            "holiday_id": holiday_id,
+                            "content": str(comment_content),
+                            "comment_user": str(username),
+                            "time_since": new_comment_time_since,
+                            "holiday_name": holiday_name,
+                        },
+                    },
+                    "notification_target": {
+                        "type": "devices_target",
+                        "devices": devices,
+                    },
+                }
+                headers = {"X-API-Token": APPCENTER_API_KEY}
+                requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
+                requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
+            else:
+                raise DeniedError(
+                    "Sorry! You've been banned and can no longer comment."
+                )
+
         else:
             comment = self.get_object(pk)
             serializer = CommentSerializer(comment, context={"username": username})
