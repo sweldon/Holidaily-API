@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 from rest_framework.authtoken.models import Token
-import timeago
+import humanize
 from django.utils import timezone
 from holidaily.utils import normalize_time
 
@@ -64,7 +64,7 @@ class Holiday(models.Model):
 
     @property
     def time_since(self):
-        time_ago = timeago.format(self.date, timezone.now().today())
+        time_ago = humanize.naturaltime(timezone.now().date() - self.date)
         return normalize_time(time_ago, "holiday")
 
     def __str__(self):
@@ -82,8 +82,13 @@ class Comment(models.Model):
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
 
     @property
+    def replies(self):
+        replies = Comment.objects.get(parent=self)
+        return replies
+
+    @property
     def time_since(self):
-        time_ago = timeago.format(self.timestamp, timezone.now())
+        time_ago = humanize.naturaltime(timezone.now() - self.timestamp)
         return normalize_time(time_ago, "comment")
 
     def __str__(self):
@@ -104,7 +109,7 @@ class UserCommentVotes(models.Model):
 
 class UserNotifications(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    notification_id = models.IntegerField()  # FK to associated notification_type
+    notification_id = models.IntegerField(blank=True, null=True)  # FK to associated notification_type
     notification_type = models.IntegerField(choices=NOTIFICATION_TYPES)
     read = models.BooleanField(default=False)
     content = models.TextField()

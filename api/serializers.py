@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from rest_framework import serializers
 from .models import (
     Holiday,
@@ -13,24 +14,49 @@ from api.constants import UPVOTE, DOWNVOTE, UPVOTE_ONLY, DOWNVOTE_ONLY
 
 class UserSerializer(serializers.ModelSerializer):
     is_premium = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
+    confetti = serializers.SerializerMethodField()
 
     def get_is_premium(self, obj):
         return UserProfile.objects.get(user=obj).premium
 
+    def get_is_active(self, obj):
+        return UserProfile.objects.get(user=obj).active
+
+    def get_confetti(self, obj):
+        user_profile = UserProfile.objects.get(user=obj)
+        points = user_profile.rewards
+        comment_votes = Comment.objects.filter(user=obj).aggregate(Sum('votes'))
+        if comment_votes["votes__sum"]:
+            comment_points = comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
+        else:
+            comment_points = 0
+        points += comment_points
+        return points
+
     class Meta:
         model = User
-        fields = ("id", "username", "is_premium")
+        fields = ("id", "username", "is_premium", "is_active", "confetti")
+
+
+# class RecursiveField(serializers.Serializer):
+#     def to_representation(self, value):
+#         serializer = self.parent.parent.__class__(value, context=self.context)
+#         print(serializer.data)
+#         return serializer.data
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
     content = serializers.CharField()
-    holiday_pk = serializers.ReadOnlyField(source="holiday.pk")
+    holiday_id = serializers.ReadOnlyField(source="holiday.pk")
     user_pk = serializers.ReadOnlyField(source="user.pk")
     timestamp = serializers.DateTimeField()
     votes = serializers.IntegerField()
-    parent = serializers.ReadOnlyField(source="self")
+    parent = serializers.IntegerField()
     time_since = serializers.CharField()
     vote_status = serializers.SerializerMethodField()
+    # replies = RecursiveField(many=True)
 
     def get_vote_status(self, obj):
         username = self.context.get("username", None)
@@ -51,14 +77,16 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = (
+            "id",
             "content",
-            "holiday_pk",
+            "holiday_id",
             "user_pk",
             "timestamp",
             "votes",
             "parent",
             "time_since",
             "vote_status",
+            # "replies"
         )
 
 

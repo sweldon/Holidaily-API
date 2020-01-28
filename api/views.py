@@ -1,3 +1,5 @@
+from django.forms import model_to_dict
+
 from .models import (
     Holiday,
     UserHolidayVotes,
@@ -16,7 +18,7 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework import generics, permissions
+from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
 from django.utils import timezone
@@ -28,7 +30,7 @@ from api.constants import (
     SINGLE_DOWN,
     UP_FROM_DOWN,
     DOWN_FROM_UP,
-)
+    DOWNVOTE_ONLY, UPVOTE_ONLY)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -37,6 +39,7 @@ from holidaily.settings import (
     APPCENTER_API_KEY,
 )
 import requests
+from django.conf import settings
 
 
 @api_view(["GET"])
@@ -69,22 +72,32 @@ def add_notification(n_id, n_type, user, content, title):
     return new_notification
 
 
-class UserList(generics.ListCreateAPIView):
+class UserList(APIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        username = request.POST.get("username", None)
+        if username:
+            user = User.objects.get(username=username)
+        else:
+            raise RequestError("Please provide a username for POST requests")
+        serializer = UserSerializer(user)
+        results = {"results": serializer.data}
+        return Response(results)
 
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
 
 
 class HolidayList(generics.GenericAPIView):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
         top_holidays = request.GET.get("top", None)
@@ -130,9 +143,12 @@ class HolidayList(generics.GenericAPIView):
         else:
             # Most recent holidays
             today = timezone.now()
-            holidays = Holiday.objects.filter(
-                date__range=[today - timedelta(days=7), today]
-            )
+            if settings.TEST_MODE:
+                holidays = Holiday.objects.all().order_by('-id')[:5]
+            else:
+                holidays = Holiday.objects.filter(
+                    date__range=[today - timedelta(days=7), today]
+                )
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -144,7 +160,7 @@ class HolidayList(generics.GenericAPIView):
 class HolidayDetail(APIView):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, pk):
         try:
@@ -192,7 +208,7 @@ class HolidayDetail(APIView):
 class CommentDetail(APIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, pk):
         try:
@@ -209,7 +225,6 @@ class CommentDetail(APIView):
     def post(self, request, pk):
         vote = request.POST.get("vote", None)
         username = request.POST.get("username", None)
-        content = request.POST.get("content", None)
         comment = self.get_object(pk)
 
         if vote:
@@ -236,17 +251,74 @@ class CommentDetail(APIView):
                 user_vote.save()
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
-        elif content:
+
+        else:
+            comment = self.get_object(pk)
+            serializer = CommentSerializer(comment, context={"username": username})
+            results = {"results": serializer.data}
+            return Response(results)
+
+
+class CommentList(generics.GenericAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    # permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        holiday = request.GET.get("holiday", None)
+        if holiday:
+            comments = Holiday.objects.get(id=holiday).comment_set.order_by("-votes")
+        else:
+            raise RequestError("Please provide a holiday for comments")
+        serializer = CommentSerializer(comments, many=True)
+        results = {"results": serializer.data}
+        return Response(results)
+
+    def get_replies(self, comment, depth, username):
+        """ Recursively get comment reply chain """
+        reply_chain = []
+        replies = comment.comment_set.all().order_by('-votes', '-id')
+
+        for c in replies:
+            reply_chain.append(c)
+            if c.comment_set.all().count() > 0:
+                depth += 20
+                child_replies = self.get_replies(c, depth, username)
+                reply_chain.extend(child_replies)
+
+        return reply_chain
+
+    def get_vote_status(self, username, obj):
+        if username:
+            if UserCommentVotes.objects.filter(
+                user__username=username, comment=obj, choice__in=UPVOTE_ONLY
+            ).exists():
+                return "up"
+            elif UserCommentVotes.objects.filter(
+                user__username=username, comment=obj, choice__in=DOWNVOTE_ONLY
+            ).exists():
+                return "down"
+            else:
+                return None
+        else:
+            return None
+
+    def post(self, request):
+        username = request.POST.get("username", None)
+        content = request.POST.get("content", None)
+        holiday = request.POST.get("holiday", None)
+
+        if content:
             parent_id = request.POST.get("parent", None)
-            holiday_id = request.POST.get("holiday", None)
-            holiday = Holiday.objects.get(id=holiday_id)
+
+            holiday = Holiday.objects.get(id=holiday)
             parent = Comment.objects.get(id=parent_id) if parent_id else None
             user = User.objects.get(username=username)
 
             if UserProfile.objects.get(user=user).active:
                 new_comment = Comment(
                     content=content,
-                    holiday_id=holiday,
+                    holiday=holiday,
                     user=user,
                     timestamp=timezone.now(),
                     parent=parent,
@@ -257,6 +329,7 @@ class CommentDetail(APIView):
                 devices = []
                 notifications = []
                 for user_mention in mentions:
+                    print(user_mention)
                     user_mention_obj = User.objects.filter(
                         username=user_mention
                     ).first()
@@ -267,11 +340,11 @@ class CommentDetail(APIView):
                         if user_mention_device:
                             devices.append(user_mention_device)
                             n = UserNotifications(
-                                notification_id=new_comment.id,
-                                notification_type="Comment",
+                                notification_id=new_comment.pk,
+                                notification_type=0,  # Comment
                                 user=user_mention_obj,
                                 content=f"{username} mentioned you in a comment on {holiday.name}",
-                                title="",
+                                title="You were mentioned!",
                             )
                             notifications.append(n)
                 UserNotifications.objects.bulk_create(notifications)
@@ -287,7 +360,7 @@ class CommentDetail(APIView):
                         "body": str(comment_content),
                         "custom_data": {
                             "comment_id": int(new_comment.id),
-                            "holiday_id": holiday_id,
+                            "holiday_id": holiday.pk,
                             "content": str(comment_content),
                             "comment_user": str(username),
                             "time_since": new_comment_time_since,
@@ -302,57 +375,56 @@ class CommentDetail(APIView):
                 headers = {"X-API-Token": APPCENTER_API_KEY}
                 requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
                 requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
+                results = {"status": HTTP_200_OK, "message": "OK"}
+                return Response(results)
             else:
                 raise DeniedError(
                     "Sorry! You've been banned and can no longer comment."
                 )
 
-        else:
-            comment = self.get_object(pk)
-            serializer = CommentSerializer(comment, context={"username": username})
-            results = {"results": serializer.data}
+        elif holiday:
+            comment_list = []
+            # All the parents with no children
+            comments = Holiday.objects.get(id=holiday).comment_set.filter(parent__isnull=True).order_by('-votes', '-id')
+            for c in comments:
+                comment_group = [c]
+                depth = 0
+                if c.comment_set.all().count() > 0:
+                    replies = self.get_replies(c, depth, username)
+                    comment_group.extend(replies)
+                comment_list.append(comment_group)
+
+            # TODO: the actual object is good just needs to be serialized'
+            results = []
+            for sub_list in comment_list:
+                serialized_sublist = []
+                depth = 10
+                for c in sub_list:
+                    c_dict = model_to_dict(c)
+                    c_dict["depth"] = depth
+                    c_dict["vote_status"] = self.get_vote_status(username, c)
+                    depth += 20
+                    serialized_sublist.append(c_dict)
+                results.append(serialized_sublist)
+            # TODO works but this is so damn slow
+            results = {"results": results}
             return Response(results)
-
-
-class CommentList(generics.GenericAPIView):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get(self, request):
-        holiday = request.GET.get("holiday", None)
-        if holiday:
-            comments = Holiday.objects.get(id=holiday).comment_set.order_by("-votes")
         else:
             raise RequestError("Please provide a holiday for comments")
-        serializer = CommentSerializer(comments, many=True)
-        results = {"results": serializer.data}
-        return Response(results)
-
-    def post(self, request):
-        holiday = request.POST.get("holiday", None)
-        username = request.POST.get("username", None)
-        if holiday:
-            comments = Holiday.objects.get(id=holiday).comment_set.order_by("-votes")
-        else:
-            raise RequestError("Please provide a holiday for comments")
-        serializer = CommentSerializer(
-            comments, many=True, context={"username": username}
-        )
-        results = {"results": serializer.data}
-        return Response(results)
 
 
 class UserNotificationsView(generics.GenericAPIView):
     queryset = UserNotifications.objects.all()
     serializer_class = UserNotificationsSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
         username = request.GET.get("username", None)
+        news = request.GET.get("news", None)
+        update_type = 0 if news else 1
         notifications = (
             UserNotifications.objects.filter(user__username=username)
-            .exclude(notification_type=1)
+            .exclude(notification_type=update_type)
             .order_by("-id")[:20]
         )
         serializer = UserNotificationsSerializer(notifications, many=True)

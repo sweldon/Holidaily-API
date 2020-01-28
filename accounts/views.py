@@ -13,6 +13,8 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
 
+from api.serializers import UserSerializer
+
 
 class UserLoginView(APIView):
     def post(self, request):
@@ -38,7 +40,9 @@ class UserLoginView(APIView):
                 if device_id != current_device_id:
                     user_profile.device_id = device_id
                     user_profile.save()
-                return Response({"message": "OK"}, status=rest_status.HTTP_200_OK)
+                serializer = UserSerializer(user)
+                results = {"results": serializer.data, "status": rest_status.HTTP_200_OK}
+                return Response(results)
             else:
                 return Response(
                     {"message": "You've been banned"},

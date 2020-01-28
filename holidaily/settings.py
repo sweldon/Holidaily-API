@@ -25,8 +25,9 @@ SECRET_KEY = "#$abpho2x@*2#i1ze_!r=8yl^lzud9v1gnz(o08t#8qg83zh4g"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["10.0.2.2", "localhost"]
 
+TEST_MODE = True
 
 # Application definition
 
@@ -145,11 +146,7 @@ STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/"
 
 # Push notifications
 APPCENTER_API_KEY = os.environ["appcenter_api"]
-PUSH_ENDPOINT_ANDROID = (
-    "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/"
-    "push/notifications"
-)
-PUSH_ENDPOINT_IOS = (
-    "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-IOS/"
-    "push/notifications"
-)
+PUSH_ENDPOINT_ANDROID = "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/" \
+                        "push/notifications/"
+
+PUSH_ENDPOINT_IOS = "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-IOS/push/notifications"
