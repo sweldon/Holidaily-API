@@ -11,6 +11,10 @@ urlpatterns = [
     path("comments/<int:pk>/", views.CommentDetail.as_view(), name="comment-detail"),
     path("comments/", views.CommentList.as_view(), name="comment-list"),
     path("notifications/", views.UserNotificationsView.as_view(), name="notifications"),
+    path("news/", views.UserNotificationsView.as_view(), name="news"),
+    path("search/", views.HolidayList.as_view(), name="search"),
+    path("pending/", views.UserHolidays.as_view(), name="pending"),
+    path("submit/", views.UserHolidays.as_view(), name="submit"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

@@ -18,8 +18,8 @@ class HolidayAdmin(admin.ModelAdmin):
         "image",
         "date",
         "num_comments",
-        "time_since",
         "creator",
+        "active",
     )
     search_fields = (
         "name",
@@ -62,7 +62,6 @@ class CommentAdmin(admin.ModelAdmin):
         "timestamp",
         "votes",
         "parent",
-        "time_since",
     )
     search_fields = ("content", "holiday", "user")
 

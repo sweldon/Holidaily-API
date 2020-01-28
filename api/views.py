@@ -1,5 +1,6 @@
 from django.forms import model_to_dict
 
+from holidaily.utils import send_slack
 from .models import (
     Holiday,
     UserHolidayVotes,
@@ -22,7 +23,7 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
 from django.utils import timezone
-from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_200_OK
+from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST
 from api.constants import (
     UPVOTE_CHOICES,
     DOWNVOTE_CHOICES,
@@ -30,7 +31,10 @@ from api.constants import (
     SINGLE_DOWN,
     UP_FROM_DOWN,
     DOWN_FROM_UP,
-    DOWNVOTE_ONLY, UPVOTE_ONLY)
+    DOWNVOTE_ONLY,
+    UPVOTE_ONLY,
+    NEWS_NOTIFICATION,
+)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -104,14 +108,14 @@ class HolidayList(generics.GenericAPIView):
         by_name = request.GET.get("name", None)
         if top_holidays:
             # Top Holidays
-            holidays = Holiday.objects.all().order_by("-votes")[:10]
+            holidays = Holiday.objects.filter(active=True).order_by("-votes")[:10]
         elif by_name:
-            holidays = Holiday.objects.filter(name=by_name)
+            holidays = Holiday.objects.filter(name=by_name, active=True)
         else:
             # Default list of today's holidays
             today = timezone.now()
             holidays = Holiday.objects.filter(
-                date__range=[today - timedelta(days=7), today]
+                date__range=[today - timedelta(days=7), today], active=True
             )
         serializer = HolidaySerializer(holidays, many=True)
         results = {"results": serializer.data}
@@ -136,18 +140,20 @@ class HolidayList(generics.GenericAPIView):
 
             if is_date:
                 holidays = Holiday.objects.filter(
-                    date=datetime.strptime(search.split(" ")[0], "%m/%d/%Y")
+                    date=datetime.strptime(search.split(" ")[0], "%m/%d/%Y"),
+                    active=True,
                 )
             else:
-                holidays = Holiday.objects.filter(name__icontains=search)
+                holidays = Holiday.objects.filter(name__icontains=search, active=True)
+
         else:
             # Most recent holidays
             today = timezone.now()
             if settings.TEST_MODE:
-                holidays = Holiday.objects.all().order_by('-id')[:5]
+                holidays = Holiday.objects.filter(active=True).order_by("-id")[:5]
             else:
                 holidays = Holiday.objects.filter(
-                    date__range=[today - timedelta(days=7), today]
+                    date__range=[today - timedelta(days=7), today], active=True
                 )
 
         serializer = HolidaySerializer(
@@ -155,6 +161,46 @@ class HolidayList(generics.GenericAPIView):
         )
         results = {"results": serializer.data}
         return Response(results)
+
+
+class UserHolidays(HolidayList):
+    def post(self, request):
+        username = request.POST.get("username", None)
+        submission = request.POST.get("submission", None)
+
+        pending_holidays = Holiday.objects.filter(
+            creator__username=username, active=False
+        ).exists()
+        if submission:
+            if pending_holidays:
+                results = {
+                    "status": HTTP_400_BAD_REQUEST,
+                    "message": "Submission already pending",
+                }
+                return Response(results)
+            else:
+                description = request.POST.get("description", None)
+                date = request.POST.get("date", None)
+                date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
+                print(date, date_formatted)
+                Holiday.objects.create(
+                    name=submission,
+                    description=description,
+                    date=date_formatted,
+                    creator=User.objects.get(username=username),
+                    active=False,
+                )
+                send_slack(
+                    f"[*USER HOLIDAY SUBMISSION*] _{username}_ has submitted a new holiday: *{submission}*."
+                )
+                results = {
+                    "message": "Holiday submitted for review",
+                    "status": HTTP_200_OK,
+                }
+                return Response(results)
+        else:
+            results = {"results": pending_holidays}
+            return Response(results)
 
 
 class HolidayDetail(APIView):
@@ -277,7 +323,7 @@ class CommentList(generics.GenericAPIView):
     def get_replies(self, comment, depth, username):
         """ Recursively get comment reply chain """
         reply_chain = []
-        replies = comment.comment_set.all().order_by('-votes', '-id')
+        replies = comment.comment_set.all().order_by("-votes", "-id")
 
         for c in replies:
             reply_chain.append(c)
@@ -385,7 +431,11 @@ class CommentList(generics.GenericAPIView):
         elif holiday:
             comment_list = []
             # All the parents with no children
-            comments = Holiday.objects.get(id=holiday).comment_set.filter(parent__isnull=True).order_by('-votes', '-id')
+            comments = (
+                Holiday.objects.get(id=holiday)
+                .comment_set.filter(parent__isnull=True)
+                .order_by("-votes", "-id")
+            )
             for c in comments:
                 comment_group = [c]
                 depth = 0
@@ -402,6 +452,8 @@ class CommentList(generics.GenericAPIView):
                 for c in sub_list:
                     c_dict = model_to_dict(c)
                     c_dict["depth"] = depth
+                    c_dict["time_since"] = c.time_since
+                    c_dict["user"] = c.user.username
                     c_dict["vote_status"] = self.get_vote_status(username, c)
                     depth += 20
                     serialized_sublist.append(c_dict)
@@ -419,12 +471,18 @@ class UserNotificationsView(generics.GenericAPIView):
     # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-        username = request.GET.get("username", None)
-        news = request.GET.get("news", None)
-        update_type = 0 if news else 1
+        notifications = UserNotifications.objects.filter(
+            notification_type=NEWS_NOTIFICATION
+        ).order_by("-id")[:20]
+        serializer = UserNotificationsSerializer(notifications, many=True)
+        results = {"results": serializer.data}
+        return Response(results)
+
+    def post(self, request):
+        username = request.POST.get("username", None)
         notifications = (
             UserNotifications.objects.filter(user__username=username)
-            .exclude(notification_type=update_type)
+            .exclude(notification_type=NEWS_NOTIFICATION)
             .order_by("-id")[:20]
         )
         serializer = UserNotificationsSerializer(notifications, many=True)

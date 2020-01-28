@@ -6,9 +6,7 @@ from django.contrib.auth.models import User
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 from rest_framework.authtoken.models import Token
-import humanize
-from django.utils import timezone
-from holidaily.utils import normalize_time
+
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -57,15 +55,11 @@ class Holiday(models.Model):
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    active = models.BooleanField(default=True)
 
     @property
     def num_comments(self):
         return self.comment_set.all().count()
-
-    @property
-    def time_since(self):
-        time_ago = humanize.naturaltime(timezone.now().date() - self.date)
-        return normalize_time(time_ago, "holiday")
 
     def __str__(self):
         return self.name
@@ -86,11 +80,6 @@ class Comment(models.Model):
         replies = Comment.objects.get(parent=self)
         return replies
 
-    @property
-    def time_since(self):
-        time_ago = humanize.naturaltime(timezone.now() - self.timestamp)
-        return normalize_time(time_ago, "comment")
-
     def __str__(self):
         return f"{self.content[:100]}..."
 
@@ -108,8 +97,11 @@ class UserCommentVotes(models.Model):
 
 
 class UserNotifications(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    notification_id = models.IntegerField(blank=True, null=True)  # FK to associated notification_type
+    # Dont need a user if you want to post news to everyone
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    notification_id = models.IntegerField(
+        blank=True, null=True
+    )  # FK to associated notification_type
     notification_type = models.IntegerField(choices=NOTIFICATION_TYPES)
     read = models.BooleanField(default=False)
     content = models.TextField()

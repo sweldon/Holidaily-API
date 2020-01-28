@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from api.models import UserProfile
-from rest_framework import status as rest_status
+from rest_framework import status as rest_status, generics
 from django.contrib.auth.models import User
 from api.constants import DISALLOWED_EMAILS
 from django.contrib.sites.shortcuts import get_current_site
@@ -16,7 +16,7 @@ from django.utils import six
 from api.serializers import UserSerializer
 
 
-class UserLoginView(APIView):
+class UserLoginView(generics.GenericAPIView):
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -41,17 +41,24 @@ class UserLoginView(APIView):
                     user_profile.device_id = device_id
                     user_profile.save()
                 serializer = UserSerializer(user)
-                results = {"results": serializer.data, "status": rest_status.HTTP_200_OK}
+                results = {
+                    "results": serializer.data,
+                    "status": rest_status.HTTP_200_OK,
+                }
                 return Response(results)
             else:
                 return Response(
-                    {"message": "You've been banned"},
-                    status=rest_status.HTTP_401_UNAUTHORIZED,
+                    {
+                        "message": "You've been banned",
+                        "status": rest_status.HTTP_401_UNAUTHORIZED,
+                    },
                 )
         else:
             return Response(
-                {"message": "Login failed, please try again"},
-                status=rest_status.HTTP_401_UNAUTHORIZED,
+                {
+                    "message": "Login failed, please try again",
+                    "status": rest_status.HTTP_401_UNAUTHORIZED,
+                },
             )
 
 

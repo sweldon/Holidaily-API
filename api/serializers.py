@@ -1,5 +1,7 @@
 from django.db.models import Sum
 from rest_framework import serializers
+
+from holidaily.utils import normalize_time
 from .models import (
     Holiday,
     Comment,
@@ -9,7 +11,16 @@ from .models import (
     UserCommentVotes,
 )
 from django.contrib.auth.models import User
-from api.constants import UPVOTE, DOWNVOTE, UPVOTE_ONLY, DOWNVOTE_ONLY
+from api.constants import (
+    UPVOTE,
+    DOWNVOTE,
+    UPVOTE_ONLY,
+    DOWNVOTE_ONLY,
+    NEWS_NOTIFICATION,
+    COMMENT_NOTIFICATION,
+)
+from django.utils import timezone
+import humanize
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -26,9 +37,11 @@ class UserSerializer(serializers.ModelSerializer):
     def get_confetti(self, obj):
         user_profile = UserProfile.objects.get(user=obj)
         points = user_profile.rewards
-        comment_votes = Comment.objects.filter(user=obj).aggregate(Sum('votes'))
+        comment_votes = Comment.objects.filter(user=obj).aggregate(Sum("votes"))
         if comment_votes["votes__sum"]:
-            comment_points = comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
+            comment_points = (
+                comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
+            )
         else:
             comment_points = 0
         points += comment_points
@@ -50,13 +63,17 @@ class CommentSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
     content = serializers.CharField()
     holiday_id = serializers.ReadOnlyField(source="holiday.pk")
-    user_pk = serializers.ReadOnlyField(source="user.pk")
+    user = serializers.ReadOnlyField(source="user.username")
     timestamp = serializers.DateTimeField()
     votes = serializers.IntegerField()
     parent = serializers.IntegerField()
-    time_since = serializers.CharField()
+    time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
     # replies = RecursiveField(many=True)
+
+    def get_time_since(self, obj):
+        time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
+        return normalize_time(time_ago, "precise")
 
     def get_vote_status(self, obj):
         username = self.context.get("username", None)
@@ -80,7 +97,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "id",
             "content",
             "holiday_id",
-            "user_pk",
+            "user",
             "timestamp",
             "votes",
             "parent",
@@ -99,9 +116,14 @@ class HolidaySerializer(serializers.ModelSerializer):
     image = serializers.CharField()
     date = serializers.DateField()
     num_comments = serializers.IntegerField()
-    time_since = serializers.CharField()
+    time_since = serializers.SerializerMethodField()
     creator = serializers.PrimaryKeyRelatedField(read_only=True)
     celebrating = serializers.SerializerMethodField()
+    active = serializers.BooleanField()
+
+    def get_time_since(self, obj):
+        time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
+        return normalize_time(time_ago, "relative")
 
     def get_celebrating(self, obj):
         username = self.context.get("username", None)
@@ -127,26 +149,39 @@ class HolidaySerializer(serializers.ModelSerializer):
             "time_since",
             "creator",
             "celebrating",
+            "active",
         )
 
 
 class UserNotificationsSerializer(serializers.ModelSerializer):
-    user_pk = serializers.ReadOnlyField(source="user.pk")
+    author = serializers.ReadOnlyField(source="user.pk")
     notification_id = serializers.IntegerField()
-    notification_type = serializers.IntegerField()
+    notification_type = serializers.SerializerMethodField()
     read = serializers.BooleanField()
     content = serializers.CharField()
     timestamp = serializers.DateTimeField()
     title = serializers.CharField()
+    time_since = serializers.SerializerMethodField()
+
+    def get_notification_type(self, obj):
+        if obj.notification_type == NEWS_NOTIFICATION:
+            return "News"
+        elif obj.notification_type == COMMENT_NOTIFICATION:
+            return "Comment"
+
+    def get_time_since(self, obj):
+        time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
+        return normalize_time(time_ago, "precise")
 
     class Meta:
         model = UserNotifications
         fields = (
-            "user_pk",
+            "author",
             "notification_id",
             "notification_type",
             "read",
             "content",
             "timestamp",
             "title",
+            "time_since",
         )
