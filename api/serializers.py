@@ -1,4 +1,3 @@
-from django.db.models import Sum
 from rest_framework import serializers
 
 from holidaily.utils import normalize_time
@@ -23,10 +22,21 @@ from django.utils import timezone
 import humanize
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    premium = serializers.BooleanField()
+
+    def get_username(self, obj):
+        return obj.user.username
+
+    class Meta:
+        model = UserProfile
+        fields = ('holiday_submissions', 'approved_holidays', 'confetti',
+                  'num_comments', 'username', 'premium')
+
 class UserSerializer(serializers.ModelSerializer):
     is_premium = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
-    confetti = serializers.SerializerMethodField()
 
     def get_is_premium(self, obj):
         return UserProfile.objects.get(user=obj).premium
@@ -34,29 +44,9 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_active(self, obj):
         return UserProfile.objects.get(user=obj).active
 
-    def get_confetti(self, obj):
-        user_profile = UserProfile.objects.get(user=obj)
-        points = user_profile.rewards
-        comment_votes = Comment.objects.filter(user=obj).aggregate(Sum("votes"))
-        if comment_votes["votes__sum"]:
-            comment_points = (
-                comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
-            )
-        else:
-            comment_points = 0
-        points += comment_points
-        return points
-
     class Meta:
         model = User
-        fields = ("id", "username", "is_premium", "is_active", "confetti")
-
-
-# class RecursiveField(serializers.Serializer):
-#     def to_representation(self, value):
-#         serializer = self.parent.parent.__class__(value, context=self.context)
-#         print(serializer.data)
-#         return serializer.data
+        fields = ("id", "username", "is_premium", "is_active")
 
 
 class CommentSerializer(serializers.ModelSerializer):

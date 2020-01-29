@@ -5,6 +5,8 @@ from api import views
 urlpatterns = [
     path("", views.api_root),
     path("users/", views.UserList.as_view(), name="user-list"),
+    path("user/", views.UserProfileDetail.as_view(), name="user-profile-detail"),
+    path("users/top", views.UserList.as_view(), name="top-users"),
     path("users/<int:pk>/", views.UserDetail.as_view(), name="user-detail"),
     path("holidays/", views.HolidayList.as_view(), name="holiday-list"),
     path("holidays/<int:pk>/", views.HolidayDetail.as_view(), name="holiday-detail"),

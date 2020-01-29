@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
 
-from api.serializers import UserSerializer
+from api.serializers import UserSerializer, UserProfileSerializer
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -41,7 +41,7 @@ class UserLoginView(generics.GenericAPIView):
                 if device_id != current_device_id:
                     user_profile.device_id = device_id
                     user_profile.save()
-                serializer = UserSerializer(user)
+                serializer = UserProfileSerializer(user_profile)
                 results = {
                     "results": serializer.data,
                     "status": rest_status.HTTP_200_OK,

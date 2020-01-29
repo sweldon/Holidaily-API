@@ -1,12 +1,11 @@
 from django.db import models
-from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.contrib.auth.models import User
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
-from rest_framework.authtoken.models import Token
-
+from holidaily.utils import normalize_time
+import humanize
+from django.utils import timezone
+from django.db.models import Sum
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -36,6 +35,31 @@ class UserProfile(models.Model):
     premium_token = models.TextField(blank=True, null=True)
     premium_state = models.TextField(blank=True, null=True)
 
+    @property
+    def num_comments(self):
+        return Comment.objects.filter(user=self.user).count()
+
+    @property
+    def holiday_submissions(self):
+        return Holiday.objects.filter(creator=self.user).count()
+
+    @property
+    def approved_holidays(self):
+        return Holiday.objects.filter(creator=self.user, active=True).count()
+
+    @property
+    def confetti(self):
+        user_profile = UserProfile.objects.get(user=self.user)
+        points = user_profile.rewards
+        comment_votes = Comment.objects.filter(user=self.user).aggregate(Sum("votes"))
+        if comment_votes["votes__sum"]:
+            comment_points = (
+                comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
+            )
+        else:
+            comment_points = 0
+        points += comment_points
+        return points
 
 # @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 # def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -79,6 +103,11 @@ class Comment(models.Model):
     def replies(self):
         replies = Comment.objects.get(parent=self)
         return replies
+
+    @property
+    def time_since(self):
+        time_ago = humanize.naturaltime(timezone.now() - self.timestamp)
+        return normalize_time(time_ago, "precise")
 
     def __str__(self):
         return f"{self.content[:100]}..."

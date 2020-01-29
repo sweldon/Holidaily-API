@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.forms import model_to_dict
 
 from holidaily.utils import send_slack
@@ -14,7 +15,7 @@ from .serializers import (
     HolidaySerializer,
     CommentSerializer,
     UserNotificationsSerializer,
-)
+    UserProfileSerializer)
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -23,7 +24,7 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
 from django.utils import timezone
-from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
 from api.constants import (
     UPVOTE_CHOICES,
     DOWNVOTE_CHOICES,
@@ -34,7 +35,7 @@ from api.constants import (
     DOWNVOTE_ONLY,
     UPVOTE_ONLY,
     NEWS_NOTIFICATION,
-)
+    COMMENT_NOTIFICATION)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -79,7 +80,13 @@ def add_notification(n_id, n_type, user, content, title):
 class UserList(APIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        top_users = UserProfile.objects.all()[:20]
+        user_list = sorted(top_users, key=lambda x: x.confetti)
+        serializer = UserProfileSerializer(user_list, many=True)
+        results = {"results": serializer.data}
+        return Response(results)
 
     def post(self, request):
         username = request.POST.get("username", None)
@@ -92,11 +99,34 @@ class UserList(APIView):
         return Response(results)
 
 
+class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+    def post(self, request):
+        username = request.POST.get("username", None)
+        token = request.POST.get("token", None)
+        profile = UserProfile.objects.filter(user__username=username).first()
+        if token:
+            id = request.POST.get("id", None)
+            state = request.POST.get("state", None)
+            profile.premium_id = id
+            profile.premium_token = token
+            profile.premium_state = state
+            profile.premium = True
+            profile.save()
+            results = {"message": "User was made premium!", "status": HTTP_200_OK}
+            return Response(results)
+
+        else:
+            serializer = UserProfileSerializer(profile)
+            results = {"results": serializer.data}
+            return Response(results)
+
+
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # permission_classes = (permissions.IsAuthenticated,)
-
 
 class HolidayList(generics.GenericAPIView):
     queryset = Holiday.objects.all()
@@ -353,8 +383,33 @@ class CommentList(generics.GenericAPIView):
         username = request.POST.get("username", None)
         content = request.POST.get("content", None)
         holiday = request.POST.get("holiday", None)
+        delete = request.POST.get("delete", None)
 
-        if content:
+        if delete:
+            # Mobile, confirm mobile user requesting delete is the author
+            device_id = request.POST.get("device_id", None)
+            comment = Comment.objects.filter(id=delete).first()
+            # Mobile, confirm mobile user requesting delete is the author
+            if not comment:
+                results = {"status": HTTP_404_NOT_FOUND, "message": "Comment no longer exists"}
+                return Response(results)
+
+            device_user = UserProfile.objects.get(device_id=device_id).user.id
+            comment_user = comment.user.id
+            if device_user == comment_user:
+                notifications = UserNotifications.objects.filter(
+                    notification_id=comment.id,
+                    notification_type=COMMENT_NOTIFICATION
+                )
+                for n in notifications:
+                    n.delete()
+                comment.delete()
+                results = {"status": HTTP_200_OK, "message": "Comment deleted"}
+                return Response(results)
+            else:
+                results = {"status": HTTP_403_FORBIDDEN, "message": "You aren't allowed to delete this"}
+                return Response(results)
+        elif content:
             parent_id = request.POST.get("parent", None)
 
             holiday = Holiday.objects.get(id=holiday)
@@ -375,7 +430,6 @@ class CommentList(generics.GenericAPIView):
                 devices = []
                 notifications = []
                 for user_mention in mentions:
-                    print(user_mention)
                     user_mention_obj = User.objects.filter(
                         username=user_mention
                     ).first()
