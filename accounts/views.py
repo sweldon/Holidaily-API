@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
@@ -71,9 +72,8 @@ class TokenGenerator(PasswordResetTokenGenerator):
         )
 
 
-class UserRegisterView(APIView):
+class UserRegisterView(generics.GenericAPIView):
     account_activation_token = TokenGenerator()
-
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -102,7 +102,8 @@ class UserRegisterView(APIView):
             )
             activation_email = EmailMessage(mail_subject, message, to=[email])
             activation_email.send(fail_silently=False)
-            return Response({"message": "OK"}, status=rest_status.HTTP_200_OK)
+            return Response({"message": "OK", "status": rest_status.HTTP_200_OK},
+                            status=rest_status.HTTP_200_OK)
         else:
             return Response(
                 {"message": "That name or email is not allowed."},

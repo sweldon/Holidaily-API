@@ -7,3 +7,4 @@ factory_boy==2.12.0
 django-easy-audit==1.1.1
 requests==2.22.0
 humanize==0.5.1
+slack==0.0.2

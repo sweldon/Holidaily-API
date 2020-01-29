@@ -154,7 +154,7 @@ class HolidaySerializer(serializers.ModelSerializer):
 
 
 class UserNotificationsSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source="user.pk")
+    author = serializers.ReadOnlyField(source="user.username")
     notification_id = serializers.IntegerField()
     notification_type = serializers.SerializerMethodField()
     read = serializers.BooleanField()
