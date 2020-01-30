@@ -1,8 +1,9 @@
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from api.models import UserProfile
-from rest_framework import status as rest_status
+from rest_framework import status as rest_status, generics
 from django.contrib.auth.models import User
 from api.constants import DISALLOWED_EMAILS
 from django.contrib.sites.shortcuts import get_current_site
@@ -13,8 +14,10 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
 
+from api.serializers import UserSerializer, UserProfileSerializer
 
-class UserLoginView(APIView):
+
+class UserLoginView(generics.GenericAPIView):
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -38,16 +41,25 @@ class UserLoginView(APIView):
                 if device_id != current_device_id:
                     user_profile.device_id = device_id
                     user_profile.save()
-                return Response({"message": "OK"}, status=rest_status.HTTP_200_OK)
+                serializer = UserProfileSerializer(user_profile)
+                results = {
+                    "results": serializer.data,
+                    "status": rest_status.HTTP_200_OK,
+                }
+                return Response(results)
             else:
                 return Response(
-                    {"message": "You've been banned"},
-                    status=rest_status.HTTP_401_UNAUTHORIZED,
+                    {
+                        "message": "You've been banned",
+                        "status": rest_status.HTTP_401_UNAUTHORIZED,
+                    },
                 )
         else:
             return Response(
-                {"message": "Login failed, please try again"},
-                status=rest_status.HTTP_401_UNAUTHORIZED,
+                {
+                    "message": "Login failed, please try again",
+                    "status": rest_status.HTTP_401_UNAUTHORIZED,
+                },
             )
 
 
@@ -60,9 +72,8 @@ class TokenGenerator(PasswordResetTokenGenerator):
         )
 
 
-class UserRegisterView(APIView):
+class UserRegisterView(generics.GenericAPIView):
     account_activation_token = TokenGenerator()
-
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -91,7 +102,8 @@ class UserRegisterView(APIView):
             )
             activation_email = EmailMessage(mail_subject, message, to=[email])
             activation_email.send(fail_silently=False)
-            return Response({"message": "OK"}, status=rest_status.HTTP_200_OK)
+            return Response({"message": "OK", "status": rest_status.HTTP_200_OK},
+                            status=rest_status.HTTP_200_OK)
         else:
             return Response(
                 {"message": "That name or email is not allowed."},

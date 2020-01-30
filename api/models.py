@@ -1,14 +1,11 @@
 from django.db import models
-from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.contrib.auth.models import User
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
-from rest_framework.authtoken.models import Token
-import timeago
-from django.utils import timezone
 from holidaily.utils import normalize_time
+import humanize
+from django.utils import timezone
+from django.db.models import Sum
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -38,14 +35,39 @@ class UserProfile(models.Model):
     premium_token = models.TextField(blank=True, null=True)
     premium_state = models.TextField(blank=True, null=True)
 
+    @property
+    def num_comments(self):
+        return Comment.objects.filter(user=self.user).count()
 
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_auth_token(sender, instance=None, created=False, **kwargs):
-    """
-    Create API token for new users
-    """
-    if created:
-        Token.objects.create(user=instance)
+    @property
+    def holiday_submissions(self):
+        return Holiday.objects.filter(creator=self.user).count()
+
+    @property
+    def approved_holidays(self):
+        return Holiday.objects.filter(creator=self.user, active=True).count()
+
+    @property
+    def confetti(self):
+        user_profile = UserProfile.objects.get(user=self.user)
+        points = user_profile.rewards
+        comment_votes = Comment.objects.filter(user=self.user).aggregate(Sum("votes"))
+        if comment_votes["votes__sum"]:
+            comment_points = (
+                comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
+            )
+        else:
+            comment_points = 0
+        points += comment_points
+        return points
+
+# @receiver(post_save, sender=settings.AUTH_USER_MODEL)
+# def create_auth_token(sender, instance=None, created=False, **kwargs):
+#     """
+#     Create API token for new users
+#     """
+#     if created:
+#         Token.objects.create(user=instance)
 
 
 class Holiday(models.Model):
@@ -57,15 +79,11 @@ class Holiday(models.Model):
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    active = models.BooleanField(default=True)
 
     @property
     def num_comments(self):
         return self.comment_set.all().count()
-
-    @property
-    def time_since(self):
-        time_ago = timeago.format(self.date, timezone.now().today())
-        return normalize_time(time_ago, "holiday")
 
     def __str__(self):
         return self.name
@@ -82,9 +100,14 @@ class Comment(models.Model):
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
 
     @property
+    def replies(self):
+        replies = Comment.objects.get(parent=self)
+        return replies
+
+    @property
     def time_since(self):
-        time_ago = timeago.format(self.timestamp, timezone.now())
-        return normalize_time(time_ago, "comment")
+        time_ago = humanize.naturaltime(timezone.now() - self.timestamp)
+        return normalize_time(time_ago, "precise")
 
     def __str__(self):
         return f"{self.content[:100]}..."
@@ -103,8 +126,11 @@ class UserCommentVotes(models.Model):
 
 
 class UserNotifications(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    notification_id = models.IntegerField()  # FK to associated notification_type
+    # Dont need a user if you want to post news to everyone
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    notification_id = models.IntegerField(
+        blank=True, null=True
+    )  # FK to associated notification_type
     notification_type = models.IntegerField(choices=NOTIFICATION_TYPES)
     read = models.BooleanField(default=False)
     content = models.TextField()

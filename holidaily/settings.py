@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import slack
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,8 +26,9 @@ SECRET_KEY = "#$abpho2x@*2#i1ze_!r=8yl^lzud9v1gnz(o08t#8qg83zh4g"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["10.0.2.2", "localhost"]
 
+TEST_MODE = True
 
 # Application definition
 
@@ -142,3 +144,14 @@ EMAIL_PORT = 587
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), "../static")
 STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/")),)
+
+# Push notifications
+APPCENTER_API_KEY = os.environ["appcenter_api"]
+PUSH_ENDPOINT_ANDROID = (
+    "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/"
+    "push/notifications/"
+)
+
+PUSH_ENDPOINT_IOS = "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-IOS/push/notifications"
+
+SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
