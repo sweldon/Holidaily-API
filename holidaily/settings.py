@@ -26,7 +26,11 @@ SECRET_KEY = "#$abpho2x@*2#i1ze_!r=8yl^lzud9v1gnz(o08t#8qg83zh4g"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["10.0.2.2", "localhost"]
+ALLOWED_HOSTS = [
+        "10.0.2.2", 
+        "localhost",
+        "ec2-35-172-129-223.compute-1.amazonaws.com"
+        ]
 
 TEST_MODE = True
 
