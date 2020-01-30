@@ -1,3 +1,4 @@
+from django.core.exceptions import MultipleObjectsReturned
 from django.forms import model_to_dict
 
 from holidaily.utils import send_slack
@@ -417,7 +418,11 @@ class CommentList(generics.GenericAPIView):
                 }
                 return Response(results)
 
-            device_user = UserProfile.objects.get(device_id=device_id).user.id
+            try:
+                device_user = UserProfile.objects.get(device_id=device_id).user.id
+            except MultipleObjectsReturned:
+                results = {"status": 500, "message": "ERROR: multiple profiles found"}
+                return Response(results)
             comment_user = comment.user.id
             if device_user == comment_user:
                 notifications = UserNotifications.objects.filter(
