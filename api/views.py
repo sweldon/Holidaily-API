@@ -158,7 +158,7 @@ class HolidayList(generics.GenericAPIView):
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
-            )
+            ).order_by('-date')
         serializer = HolidaySerializer(holidays, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -196,7 +196,7 @@ class HolidayList(generics.GenericAPIView):
             else:
                 holidays = Holiday.objects.filter(
                     date__range=[today - timedelta(days=7), today], active=True
-                )
+                ).order_by('-date')
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
