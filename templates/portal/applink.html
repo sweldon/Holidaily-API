@@ -1,0 +1,95 @@
+
+{% load staticfiles %}
+
+<html>
+<title>Holidaily</title>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="/static/base/style/style.css?v={{version}}" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <style>
+        body{
+            background-color:#FFFFFF;
+        }
+        .container{
+            text-align: center;
+            margin-top: 100px;
+        }
+
+        #icon{
+            width: 50%;
+            margin: 170px 0px 0px -180px;
+        }
+        #wrapper-mobile{
+            display: none;
+        }
+        #storelinks{
+            opacity: .5;
+            cursor:pointer;
+            margin: 20px 175px 0px 0px;
+        }
+        </style>
+<script>
+$( document ).ready(function() {
+
+        var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        var inUrl = document.location.href;
+        var toApp = "holidaily://holiday?"+inUrl.split("?")[1];
+
+        if( inUrl.indexOf("?") > -1 ){
+            if (/android/i.test(userAgent)) {
+                window.location = toApp;
+                // setTimeout(function() {
+                //     //window.location = 'https://play.google.com'
+                //     alert("Holidaily is coming to the Google Play Store soon. Stay tuned!");
+                // }, 3000);
+            }
+
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                window.location = toApp;
+                // setTimeout(function() {
+                //     //window.location = 'https://www.apple.com/ios/app-store'
+                //     alert("Holidaily is coming to the iOS AppStore soon. Stay tuned!");
+                // }, 3000);
+            }
+        }else{
+            if (/android/i.test(userAgent)) {
+                window.location = toApp;
+                setTimeout(function() {
+                    window.location = 'https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'
+                }, 1000);
+            }
+
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                window.location = toApp;
+                // setTimeout(function() {
+                //     //window.location = 'https://www.apple.com/ios/app-store'
+                //     alert("Holidaily is coming to the iOS AppStore soon. Stay tuned!");
+                // }, 3000);
+            }
+        }
+    })
+</script>
+
+</head>
+    <body>
+        <div class="container">
+            <div id="mockup" style="float: left;">
+                <img src="/static/base/img/mockup_both.png" />
+            </div>
+            <div id="mockup-mobile">
+
+                    <img src="/static/base/img/mockup_both.png" />
+            </div>
+            <div id="wrapper" style="text-align: center;">
+                <img id="icon" src='/static/base/img/holidaily-banner-2.png' />
+            </div>
+            <div id="storelinks">
+                <img width="100" height="30" style="" src='/static/base/img/googleplay.PNG'
+                     onclick="window.location='https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'" />
+                <img width="100" height="30" style="" src='/static/base/img/appstore.PNG'
+                     onclick="alert('Coming to Google Play and AppStore soon!');" />
+            </div>
+        </div>
+    </body>
+</html>

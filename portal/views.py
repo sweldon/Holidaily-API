@@ -27,6 +27,9 @@ class TokenGenerator(PasswordResetTokenGenerator):
             + six.text_type(user.is_active)
         )
 
+def index(request):
+    return render(request, "portal/applink.html")
+
 
 def activate(request, uidb64, token):
     account_activation_token = TokenGenerator()
