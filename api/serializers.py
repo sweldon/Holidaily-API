@@ -110,6 +110,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     creator = serializers.PrimaryKeyRelatedField(read_only=True)
     celebrating = serializers.SerializerMethodField()
     active = serializers.BooleanField()
+    blurb = serializers.CharField()
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
@@ -140,6 +141,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "creator",
             "celebrating",
             "active",
+            "blurb"
         )
 
 

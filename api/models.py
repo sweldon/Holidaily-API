@@ -80,6 +80,7 @@ class Holiday(models.Model):
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     active = models.BooleanField(default=True)
+    blurb = models.CharField(max_length=100)
 
     @property
     def num_comments(self):
