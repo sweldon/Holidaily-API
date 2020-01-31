@@ -102,7 +102,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     description = serializers.CharField()
     votes = serializers.IntegerField()
-    blurb = serializers.CharField()
+    push = serializers.CharField()
     image = serializers.CharField()
     date = serializers.DateField()
     num_comments = serializers.IntegerField()
@@ -132,7 +132,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "name",
             "description",
             "votes",
-            "blurb",
+            "push",
             "image",
             "date",
             "num_comments",

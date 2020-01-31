@@ -74,7 +74,7 @@ class Holiday(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     votes = models.IntegerField(default=0)
-    blurb = models.TextField(null=True)
+    push = models.TextField(null=True)
     image = models.TextField(null=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
