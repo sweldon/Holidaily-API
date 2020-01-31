@@ -53,14 +53,6 @@ import requests
 from django.conf import settings
 
 
-@api_view(["GET"])
-def api_root(request, format=None):
-    return Response(
-        {
-            "users": reverse("user-list", request=request, format=format),
-            "holidays": reverse("holiday-list", request=request, format=format),
-        }
-    )
 
 
 def add_notification(n_id, n_type, user, content, title):

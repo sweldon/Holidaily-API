@@ -1,9 +1,10 @@
 from django.urls import path
 from rest_framework.urlpatterns import format_suffix_patterns
 from api import views
+from portal.views import index
 
 urlpatterns = [
-    path("", views.api_root),
+    path("", index),
     path("users/", views.UserList.as_view(), name="user-list"),
     path("user/", views.UserProfileDetail.as_view(), name="user-profile-detail"),
     path("users/top", views.UserList.as_view(), name="top-users"),
