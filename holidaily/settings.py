@@ -31,10 +31,10 @@ ALLOWED_HOSTS = [
     "localhost",
     "ec2-52-6-245-91.compute-1.amazonaws.com",
     "holidailyapp.com",
-    "www.holidailyapp.com"
+    "www.holidailyapp.com",
 ]
 
-TEST_MODE = True
+TEST_MODE = False if os.environ["debug"] == "False" else True
 
 # Application definition
 
