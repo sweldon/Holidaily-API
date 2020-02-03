@@ -452,7 +452,7 @@ class CommentList(generics.GenericAPIView):
                     ).first()
                     if user_mention_obj:
                         user_mention_device = UserProfile.objects.get(
-                            user=user
+                            user=user_mention_obj
                         ).device_id
                         if user_mention_device:
                             devices.append(user_mention_device)
