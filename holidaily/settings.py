@@ -27,13 +27,14 @@ SECRET_KEY = "#$abpho2x@*2#i1ze_!r=8yl^lzud9v1gnz(o08t#8qg83zh4g"
 DEBUG = False if os.environ["debug"] == "False" else True
 
 ALLOWED_HOSTS = [
-        "10.0.2.2", 
-        "localhost",
-        "ec2-52-6-245-91.compute-1.amazonaws.com",
-        "holidailyapp.com"
-        ]
+    "10.0.2.2",
+    "localhost",
+    "ec2-52-6-245-91.compute-1.amazonaws.com",
+    "holidailyapp.com",
+    "www.holidailyapp.com",
+]
 
-TEST_MODE = True
+TEST_MODE = False if os.environ["debug"] == "False" else True
 
 # Application definition
 
@@ -153,15 +154,16 @@ SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Supports second, minute, hour, day
 REST_FRAMEWORK = {
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '50/minute',
-    },
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": "50/minute"},
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 5,
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-    )
+    "PAGE_SIZE": 10,
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
 }
+
+# Force HTTPS
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
