@@ -5,6 +5,7 @@ from portal.views import index
 
 urlpatterns = [
     path("", index),
+    path("holiday/", index),
     path("users/", views.UserList.as_view(), name="user-list"),
     path("user/", views.UserProfileDetail.as_view(), name="user-profile-detail"),
     path("users/top", views.UserList.as_view(), name="top-users"),
