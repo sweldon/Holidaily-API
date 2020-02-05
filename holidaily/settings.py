@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
     "www.holidailyapp.com",
 ]
 
-TEST_MODE = False if os.environ["debug"] == "False" else True
+TEST_MODE =False
 
 # Application definition
 
@@ -167,3 +167,6 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+HOLIDAY_IMAGE_WIDTH = 338
+HOLIDAY_IMAGE_HEIGHT = 225

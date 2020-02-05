@@ -1,12 +1,18 @@
+import boto3
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
+
+from holidaily.settings import HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT
 from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
 from django.db.models import Sum
+import requests
+from PIL import Image
+from io import BytesIO
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -89,13 +95,32 @@ class Holiday(models.Model):
         return self.comment_set.all().count()
 
     def get_image(self):
-        return mark_safe('<img src="%s" />' % (self.image))
+        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT))
 
     get_image.short_description = "Image Preview"
 
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+
+        suffix = self.image.split('.')[-1]
+        file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
+
+        image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+        image_data = requests.get(self.image).content
+        image_object = Image.open(BytesIO(image_data))
+        image_object.thumbnail(image_size)
+
+        byte_arr = BytesIO()
+        image_format = "PNG"
+        if suffix.lower() in ['jpg', 'jpeg']:
+            image_format = "JPEG"
+
+        image_object.save(byte_arr, format=image_format)
+        s3_client = boto3.resource('s3')
+        s3_client.Bucket('holiday-images').put_object(Key=file_name, Body=byte_arr.getvalue())
+        super(Holiday, self).save(*args, **kwargs)
 
 class Comment(models.Model):
     content = models.TextField()
