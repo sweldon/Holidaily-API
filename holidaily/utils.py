@@ -8,7 +8,7 @@ def normalize_time(time_ago: str, time_type: str) -> str:
     if time_type == "precise":
         return time_ago
     elif time_type == "relative":
-        if "hours" in time_ago or "minutes" in time_ago or "now" in time_ago:
+        if "hours" in time_ago or "minutes" in time_ago or time_ago == "now" or time_ago == "just now":
             return "Today"
         elif time_ago == "1 day ago" or time_ago == "a day ago":
             return "Yesterday"

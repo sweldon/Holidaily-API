@@ -11,7 +11,7 @@ class Command(BaseCommand):
         today = timezone.now().date()
         todays_holidays = Holiday.objects.filter(date=today)
         random_day = random.choice(todays_holidays)
-        push = random_day.push
+        push = random_day.push if random_day.push else "Check out today's holidays!"
         day_name = random_day.name
         id = random_day.id
         android_url = 'https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/push/notifications'
