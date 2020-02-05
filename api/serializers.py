@@ -56,10 +56,9 @@ class CommentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source="user.username")
     timestamp = serializers.DateTimeField()
     votes = serializers.IntegerField()
-    parent = serializers.IntegerField()
+    parent = serializers.ReadOnlyField(source="self.pk")
     time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
-    # replies = RecursiveField(many=True)
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
@@ -93,7 +92,6 @@ class CommentSerializer(serializers.ModelSerializer):
             "parent",
             "time_since",
             "vote_status",
-            # "replies"
         )
 
 

@@ -296,7 +296,6 @@ class HolidayDetail(APIView):
 class CommentDetail(APIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    # permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, pk):
         try:
