@@ -30,7 +30,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "blurb",
         "image",
         "date",
-        "creator",
+        "creator__username",
     )
 
 
