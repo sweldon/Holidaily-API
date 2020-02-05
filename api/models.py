@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 from holidaily.utils import normalize_time
@@ -61,6 +62,7 @@ class UserProfile(models.Model):
         points += comment_points
         return points
 
+
 # @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 # def create_auth_token(sender, instance=None, created=False, **kwargs):
 #     """
@@ -85,6 +87,11 @@ class Holiday(models.Model):
     @property
     def num_comments(self):
         return self.comment_set.all().count()
+
+    def get_image(self):
+        return mark_safe('<img src="%s" />' % (self.image))
+
+    get_image.short_description = "Image Preview"
 
     def __str__(self):
         return self.name

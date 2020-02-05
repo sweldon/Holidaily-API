@@ -32,6 +32,18 @@ class HolidayAdmin(admin.ModelAdmin):
         "date",
         "creator__username",
     )
+    readonly_fields = ("get_image",)
+    fields = (
+        "name",
+        "date",
+        "get_image",
+        "image",
+        "description",
+        "push",
+        "blurb",
+        "votes",
+        "creator",
+    )
 
 
 class UserProfileAdmin(admin.ModelAdmin):
