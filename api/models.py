@@ -95,10 +95,16 @@ class Holiday(models.Model):
         return self.comment_set.all().count()
 
     def get_image(self):
-        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT))
+        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH,
+                                                                      HOLIDAY_IMAGE_HEIGHT))
+
+    def get_image_small(self):
+        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH/2,
+                                                                      HOLIDAY_IMAGE_HEIGHT/2))
 
     get_image.short_description = "Image Preview"
-
+    get_image_small.short_description = "Image Preview"
+    
     def __str__(self):
         return self.name
 

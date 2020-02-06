@@ -14,11 +14,11 @@ from django.db import models
 class HolidayAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "get_image_small",
         "description",
+        "blurb",
         "votes",
         "push",
-        "blurb",
-        "image",
         "date",
         "num_comments",
         "creator",
