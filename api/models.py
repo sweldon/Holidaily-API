@@ -88,7 +88,7 @@ class Holiday(models.Model):
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     active = models.BooleanField(default=True)
-    blurb = models.CharField(max_length=100)
+    blurb = models.TextField(null=True)
 
     @property
     def num_comments(self):
@@ -104,7 +104,7 @@ class Holiday(models.Model):
 
     get_image.short_description = "Image Preview"
     get_image_small.short_description = "Image Preview"
-    
+
     def __str__(self):
         return self.name
 
