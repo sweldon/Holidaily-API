@@ -14,6 +14,7 @@ from django.db import models
 class HolidayAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "active",
         "get_image_small",
         "description",
         "blurb",
@@ -22,7 +23,6 @@ class HolidayAdmin(admin.ModelAdmin):
         "date",
         "num_comments",
         "creator",
-        "active",
     )
     search_fields = (
         "name",
@@ -38,6 +38,7 @@ class HolidayAdmin(admin.ModelAdmin):
     fields = (
         "name",
         "date",
+        "active",
         "get_image",
         "image",
         "description",
@@ -47,7 +48,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "creator",
     )
     formfield_overrides = {
-        models.CharField: {'widget': Textarea(attrs={'rows': 4, 'cols': 99})},
+        models.CharField: {"widget": Textarea(attrs={"rows": 4, "cols": 99})},
     }
 
 
