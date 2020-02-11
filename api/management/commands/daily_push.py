@@ -9,7 +9,9 @@ from holidaily.settings import APPCENTER_API_KEY
 class Command(BaseCommand):
     def handle(self, *args, **options):
         today = timezone.now().date()
-        todays_holidays = Holiday.objects.filter(date=today, active=True)
+        todays_holidays = Holiday.objects.filter(
+            date=today, active=True, push__isnull=False
+        )
         random_day = random.choice(todays_holidays)
         push = random_day.push if random_day.push else "Check out today's holidays!"
         day_name = random_day.name
