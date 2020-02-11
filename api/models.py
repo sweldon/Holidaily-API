@@ -82,7 +82,7 @@ class Holiday(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     votes = models.IntegerField(default=0)
-    push = models.TextField(null=True)
+    push = models.TextField(null=True, blank=True)
     image = models.TextField(null=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
@@ -95,12 +95,16 @@ class Holiday(models.Model):
         return self.comment_set.all().count()
 
     def get_image(self):
-        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH,
-                                                                      HOLIDAY_IMAGE_HEIGHT))
+        return mark_safe(
+            '<img src="%s" width="%s" height="%s" />'
+            % (self.image, HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+        )
 
     def get_image_small(self):
-        return mark_safe('<img src="%s" width="%s" height="%s" />' % (self.image, HOLIDAY_IMAGE_WIDTH/2,
-                                                                      HOLIDAY_IMAGE_HEIGHT/2))
+        return mark_safe(
+            '<img src="%s" width="%s" height="%s" />'
+            % (self.image, HOLIDAY_IMAGE_WIDTH / 2, HOLIDAY_IMAGE_HEIGHT / 2)
+        )
 
     get_image.short_description = "Image Preview"
     get_image_small.short_description = "Image Preview"
@@ -110,7 +114,7 @@ class Holiday(models.Model):
 
     def save(self, *args, **kwargs):
 
-        suffix = self.image.split('.')[-1]
+        suffix = self.image.split(".")[-1]
         file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
 
         image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
@@ -120,13 +124,16 @@ class Holiday(models.Model):
 
         byte_arr = BytesIO()
         image_format = "PNG"
-        if suffix.lower() in ['jpg', 'jpeg']:
+        if suffix.lower() in ["jpg", "jpeg"]:
             image_format = "JPEG"
 
         image_object.save(byte_arr, format=image_format)
-        s3_client = boto3.resource('s3')
-        s3_client.Bucket('holiday-images').put_object(Key=file_name, Body=byte_arr.getvalue())
+        s3_client = boto3.resource("s3")
+        s3_client.Bucket("holiday-images").put_object(
+            Key=file_name, Body=byte_arr.getvalue()
+        )
         super(Holiday, self).save(*args, **kwargs)
+
 
 class Comment(models.Model):
     content = models.TextField()
