@@ -48,7 +48,7 @@ from holidaily.settings import (
     PUSH_ENDPOINT_ANDROID,
     PUSH_ENDPOINT_IOS,
     APPCENTER_API_KEY,
-)
+    COMMENT_PAGE_SIZE)
 import requests
 from django.conf import settings
 
@@ -507,13 +507,15 @@ class CommentList(generics.GenericAPIView):
                 )
 
         elif holiday:
+            page = int(request.POST.get("page", 0))
+            chunk = page * COMMENT_PAGE_SIZE
             comment_list = []
             # All the parents with no children
             comments = (
                 Holiday.objects.get(id=holiday)
                 .comment_set.filter(parent__isnull=True)
                 .order_by("-votes", "-id")
-            )
+            )[chunk:chunk + COMMENT_PAGE_SIZE]
             for c in comments:
                 comment_group = [c]
                 depth = 0
@@ -536,7 +538,6 @@ class CommentList(generics.GenericAPIView):
                     depth += 20
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
-            # TODO works but this is so damn slow
             results = {"results": results}
             return Response(results)
         else:
