@@ -394,7 +394,15 @@ class CommentList(generics.GenericAPIView):
                 results = {"status": HTTP_404_NOT_FOUND, "message": "Comment no longer exists"}
                 return Response(results)
 
-            device_user = UserProfile.objects.get(device_id=device_id).user.id
+            try:
+                device_user = UserProfile.objects.get(user__username=username, device_id=device_id).user.id
+            except:
+                results = {
+                    "status": HTTP_403_FORBIDDEN,
+                    "message": "Have you switched devices recently? Something's strange about your activity. Please "
+                               "re-log in and try to delete this comment again.",
+                }
+                return Response(results)
             comment_user = comment.user.id
             if device_user == comment_user:
                 notifications = UserNotifications.objects.filter(

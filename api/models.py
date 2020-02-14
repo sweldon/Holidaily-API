@@ -2,6 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
+
+from api.constants import NEWS_NOTIFICATION
+from holidaily.settings import HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT, APPCENTER_API_KEY, PUSH_ENDPOINT_ANDROID, \
+    PUSH_ENDPOINT_IOS
 from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
@@ -136,3 +140,12 @@ class UserNotifications(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     title = models.CharField(max_length=50)
+
+    def save(self, *args, **kwargs):
+        super(UserNotifications, self).save(*args, **kwargs)
+        if self.notification_type == NEWS_NOTIFICATION:
+            data = {"notification_content": {"name": "Announcement", "title": self.title, "body": self.content,
+                                             "custom_data": {"news": "true"}}, "notification_target": None}
+            headers = {"X-API-Token": APPCENTER_API_KEY}
+            requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
+            requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)

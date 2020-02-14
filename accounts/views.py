@@ -106,6 +106,5 @@ class UserRegisterView(generics.GenericAPIView):
                             status=rest_status.HTTP_200_OK)
         else:
             return Response(
-                {"message": "That name or email is not allowed."},
-                status=rest_status.HTTP_400_BAD_REQUEST,
+                {"message": "That name or email is taken, or not allowed", "status": rest_status.HTTP_400_BAD_REQUEST},
             )
