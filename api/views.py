@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.core.exceptions import MultipleObjectsReturned
 from django.forms import model_to_dict
 
 from holidaily.utils import send_slack
@@ -15,7 +15,8 @@ from .serializers import (
     HolidaySerializer,
     CommentSerializer,
     UserNotificationsSerializer,
-    UserProfileSerializer)
+    UserProfileSerializer,
+)
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -24,7 +25,12 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
 from django.utils import timezone
-from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
+from rest_framework.status import (
+    HTTP_404_NOT_FOUND,
+    HTTP_200_OK,
+    HTTP_400_BAD_REQUEST,
+    HTTP_403_FORBIDDEN,
+)
 from api.constants import (
     UPVOTE_CHOICES,
     DOWNVOTE_CHOICES,
@@ -35,7 +41,8 @@ from api.constants import (
     DOWNVOTE_ONLY,
     UPVOTE_ONLY,
     NEWS_NOTIFICATION,
-    COMMENT_NOTIFICATION)
+    COMMENT_NOTIFICATION,
+)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -106,8 +113,11 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
     def post(self, request):
         username = request.POST.get("username", None)
         token = request.POST.get("token", None)
+        reward = request.POST.get("reward", None)
+
         profile = UserProfile.objects.filter(user__username=username).first()
         if token:
+            # User bought premium
             id = request.POST.get("id", None)
             state = request.POST.get("state", None)
             profile.premium_id = id
@@ -118,15 +128,26 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             results = {"message": "User was made premium!", "status": HTTP_200_OK}
             return Response(results)
 
+        elif reward:
+            # User earned confetti
+            reward_amount = request.POST.get("reward", None)
+            profile.rewards += int(reward_amount)
+            profile.save()
+            results = {
+                "message": f"{reward_amount} confetti awarded to {username}",
+                "status": HTTP_200_OK,
+            }
+            return Response(results)
         else:
             serializer = UserProfileSerializer(profile)
             results = {"results": serializer.data}
             return Response(results)
 
 
-class UserDetail(generics.RetrieveUpdateDestroyAPIView):
+class UserDetail(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
 
 class HolidayList(generics.GenericAPIView):
     queryset = Holiday.objects.all()
@@ -391,7 +412,10 @@ class CommentList(generics.GenericAPIView):
             comment = Comment.objects.filter(id=delete).first()
             # Mobile, confirm mobile user requesting delete is the author
             if not comment:
-                results = {"status": HTTP_404_NOT_FOUND, "message": "Comment no longer exists"}
+                results = {
+                    "status": HTTP_404_NOT_FOUND,
+                    "message": "Comment no longer exists",
+                }
                 return Response(results)
 
             try:
@@ -406,8 +430,7 @@ class CommentList(generics.GenericAPIView):
             comment_user = comment.user.id
             if device_user == comment_user:
                 notifications = UserNotifications.objects.filter(
-                    notification_id=comment.id,
-                    notification_type=COMMENT_NOTIFICATION
+                    notification_id=comment.id, notification_type=COMMENT_NOTIFICATION
                 )
                 for n in notifications:
                     n.delete()
@@ -415,7 +438,10 @@ class CommentList(generics.GenericAPIView):
                 results = {"status": HTTP_200_OK, "message": "Comment deleted"}
                 return Response(results)
             else:
-                results = {"status": HTTP_403_FORBIDDEN, "message": "You aren't allowed to delete this"}
+                results = {
+                    "status": HTTP_403_FORBIDDEN,
+                    "message": "You aren't allowed to delete this",
+                }
                 return Response(results)
         elif content:
             parent_id = request.POST.get("parent", None)
