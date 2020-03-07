@@ -34,8 +34,6 @@ ALLOWED_HOSTS = [
     "www.holidailyapp.com",
 ]
 
-TEST_MODE =False
-
 # Application definition
 
 INSTALLED_APPS = [
