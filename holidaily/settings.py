@@ -24,11 +24,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = "#$abpho2x@*2#i1ze_!r=8yl^lzud9v1gnz(o08t#8qg83zh4g"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False if os.environ["DEBUG"] == "False" else True
 
-ALLOWED_HOSTS = ["10.0.2.2", "localhost"]
-
-TEST_MODE = True
+ALLOWED_HOSTS = [
+    "10.0.2.2",
+    "localhost",
+    "ec2-52-6-245-91.compute-1.amazonaws.com",
+    "holidailyapp.com",
+    "www.holidailyapp.com",
+]
 
 # Application definition
 
@@ -113,28 +117,18 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
-
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
+TIME_ZONE = "America/New_York"
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = "/static/"
-
-REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.BasicAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-    ],
-}
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = "smtp.gmail.com"
@@ -155,3 +149,23 @@ PUSH_ENDPOINT_ANDROID = (
 PUSH_ENDPOINT_IOS = "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-IOS/push/notifications"
 
 SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
+
+# Supports second, minute, hour, day
+REST_FRAMEWORK = {
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": "50/minute"},
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+}
+
+# Force HTTPS
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+HOLIDAY_IMAGE_WIDTH = 338
+HOLIDAY_IMAGE_HEIGHT = 225
+COMMENT_PAGE_SIZE = 10

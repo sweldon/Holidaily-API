@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.forms import Textarea
 from .models import (
     UserProfile,
     Holiday,
@@ -7,29 +8,48 @@ from .models import (
     UserNotifications,
     UserCommentVotes,
 )
+from django.db import models
 
 
 class HolidayAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "active",
+        "get_image_small",
         "description",
-        "votes",
         "blurb",
-        "image",
+        "votes",
+        "push",
         "date",
         "num_comments",
         "creator",
-        "active",
     )
     search_fields = (
         "name",
         "description",
         "votes",
+        "push",
         "blurb",
         "image",
         "date",
+        "creator__username",
+    )
+    readonly_fields = ("get_image",)
+    fields = (
+        "name",
+        "date",
+        "active",
+        "get_image",
+        "image",
+        "description",
+        "push",
+        "blurb",
+        "votes",
         "creator",
     )
+    formfield_overrides = {
+        models.CharField: {"widget": Textarea(attrs={"rows": 4, "cols": 99})},
+    }
 
 
 class UserProfileAdmin(admin.ModelAdmin):

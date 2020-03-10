@@ -56,10 +56,9 @@ class CommentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source="user.username")
     timestamp = serializers.DateTimeField()
     votes = serializers.IntegerField()
-    parent = serializers.IntegerField()
+    parent = serializers.ReadOnlyField(source="self.pk")
     time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
-    # replies = RecursiveField(many=True)
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
@@ -93,7 +92,6 @@ class CommentSerializer(serializers.ModelSerializer):
             "parent",
             "time_since",
             "vote_status",
-            # "replies"
         )
 
 
@@ -102,7 +100,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     description = serializers.CharField()
     votes = serializers.IntegerField()
-    blurb = serializers.CharField()
+    push = serializers.CharField()
     image = serializers.CharField()
     date = serializers.DateField()
     num_comments = serializers.IntegerField()
@@ -110,6 +108,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     creator = serializers.PrimaryKeyRelatedField(read_only=True)
     celebrating = serializers.SerializerMethodField()
     active = serializers.BooleanField()
+    blurb = serializers.CharField()
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
@@ -132,7 +131,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "name",
             "description",
             "votes",
-            "blurb",
+            "push",
             "image",
             "date",
             "num_comments",
@@ -140,6 +139,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "creator",
             "celebrating",
             "active",
+            "blurb"
         )
 
 

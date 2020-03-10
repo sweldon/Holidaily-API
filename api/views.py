@@ -1,4 +1,3 @@
-from django.core.exceptions import MultipleObjectsReturned
 from django.forms import model_to_dict
 
 from holidaily.utils import send_slack
@@ -18,9 +17,7 @@ from .serializers import (
     UserProfileSerializer,
 )
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
@@ -49,19 +46,10 @@ from holidaily.settings import (
     PUSH_ENDPOINT_ANDROID,
     PUSH_ENDPOINT_IOS,
     APPCENTER_API_KEY,
+    COMMENT_PAGE_SIZE,
 )
 import requests
 from django.conf import settings
-
-
-@api_view(["GET"])
-def api_root(request, format=None):
-    return Response(
-        {
-            "users": reverse("user-list", request=request, format=format),
-            "holidays": reverse("holiday-list", request=request, format=format),
-        }
-    )
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -167,7 +155,7 @@ class HolidayList(generics.GenericAPIView):
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
-            )
+            ).order_by("-date")
         serializer = HolidaySerializer(holidays, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -200,12 +188,12 @@ class HolidayList(generics.GenericAPIView):
         else:
             # Most recent holidays
             today = timezone.now()
-            if settings.TEST_MODE:
+            if settings.DEBUG:
                 holidays = Holiday.objects.filter(active=True).order_by("-id")[:5]
             else:
                 holidays = Holiday.objects.filter(
                     date__range=[today - timedelta(days=7), today], active=True
-                )
+                ).order_by("-date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -305,7 +293,6 @@ class HolidayDetail(APIView):
 class CommentDetail(APIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    # permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, pk):
         try:
@@ -419,12 +406,14 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
 
             try:
-                device_user = UserProfile.objects.get(user__username=username, device_id=device_id).user.id
-            except:
+                device_user = UserProfile.objects.get(
+                    user__username=username, device_id=device_id
+                ).user.id
+            except:  # noqa
                 results = {
                     "status": HTTP_403_FORBIDDEN,
                     "message": "Have you switched devices recently? Something's strange about your activity. Please "
-                               "re-log in and try to delete this comment again.",
+                    "re-log in and try to delete this comment again.",
                 }
                 return Response(results)
             comment_user = comment.user.id
@@ -469,7 +458,7 @@ class CommentList(generics.GenericAPIView):
                     ).first()
                     if user_mention_obj:
                         user_mention_device = UserProfile.objects.get(
-                            user=user
+                            user=user_mention_obj
                         ).device_id
                         if user_mention_device:
                             devices.append(user_mention_device)
@@ -517,13 +506,15 @@ class CommentList(generics.GenericAPIView):
                 )
 
         elif holiday:
+            page = int(request.POST.get("page", 0))
+            chunk = page * COMMENT_PAGE_SIZE
             comment_list = []
             # All the parents with no children
             comments = (
                 Holiday.objects.get(id=holiday)
                 .comment_set.filter(parent__isnull=True)
                 .order_by("-votes", "-id")
-            )
+            )[chunk : chunk + COMMENT_PAGE_SIZE]
             for c in comments:
                 comment_group = [c]
                 depth = 0
@@ -546,7 +537,6 @@ class CommentList(generics.GenericAPIView):
                     depth += 20
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
-            # TODO works but this is so damn slow
             results = {"results": results}
             return Response(results)
         else:

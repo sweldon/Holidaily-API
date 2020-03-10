@@ -8,3 +8,6 @@ django-easy-audit==1.1.1
 requests==2.22.0
 humanize==0.5.1
 slack==0.0.2
+boto3==1.11.11
+image==1.5.28
+slackclient==2.5.0

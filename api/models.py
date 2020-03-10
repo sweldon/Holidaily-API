@@ -1,5 +1,7 @@
+import boto3
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
@@ -10,6 +12,9 @@ from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
 from django.db.models import Sum
+import requests
+from PIL import Image
+from io import BytesIO
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -65,6 +70,7 @@ class UserProfile(models.Model):
         points += comment_points
         return points
 
+
 # @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 # def create_auth_token(sender, instance=None, created=False, **kwargs):
 #     """
@@ -78,19 +84,57 @@ class Holiday(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     votes = models.IntegerField(default=0)
-    blurb = models.TextField(null=True)
+    push = models.TextField(null=True, blank=True)
     image = models.TextField(null=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     active = models.BooleanField(default=True)
+    blurb = models.TextField(null=True)
 
     @property
     def num_comments(self):
         return self.comment_set.all().count()
 
+    def get_image(self):
+        return mark_safe(
+            '<img src="%s" width="%s" height="%s" />'
+            % (self.image, HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+        )
+
+    def get_image_small(self):
+        return mark_safe(
+            '<img src="%s" width="%s" height="%s" />'
+            % (self.image, HOLIDAY_IMAGE_WIDTH / 2, HOLIDAY_IMAGE_HEIGHT / 2)
+        )
+
+    get_image.short_description = "Image Preview"
+    get_image_small.short_description = "Image Preview"
+
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+
+        suffix = self.image.split(".")[-1]
+        file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
+
+        image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+        image_data = requests.get(self.image).content
+        image_object = Image.open(BytesIO(image_data))
+        image_object.thumbnail(image_size)
+
+        byte_arr = BytesIO()
+        image_format = "PNG"
+        if suffix.lower() in ["jpg", "jpeg"]:
+            image_format = "JPEG"
+
+        image_object.save(byte_arr, format=image_format)
+        s3_client = boto3.resource("s3")
+        s3_client.Bucket("holiday-images").put_object(
+            Key=file_name, Body=byte_arr.getvalue()
+        )
+        super(Holiday, self).save(*args, **kwargs)
 
 
 class Comment(models.Model):
