@@ -9,12 +9,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         tomorrow = timezone.now().date() + timedelta(days=1)
         actives = Holiday.objects.filter(date=tomorrow, active=True).count()
+        admins = ["steven.d.weldon@gmail.com",
+            "samuelwwiggins@gmail.com",
+            "christopher.hart.anderson@gmail.com",
+            "megan.giangrande@gmail.com",
+            "mcryan233@gmail.com"]
         # TODO: change this to a query on AuthUser for admins
         if actives == 0:
-            admins = []
             mail_subject = "No Active Holidays Tomorrow"
             message = f"""
-            <h3>Just a warning that there are no holidays set up for tomorrow</h3><br />
+            Just a warning that there are no holidays set up for tomorrow.
             <a href="https://holidailyapp.com/admin/api/holiday/?q={tomorrow}">
             Click here to set them up!
             </a>
