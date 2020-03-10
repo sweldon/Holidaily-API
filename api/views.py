@@ -17,9 +17,7 @@ from .serializers import (
     UserProfileSerializer,
 )
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework import generics
 from rest_framework.views import APIView
 from datetime import timedelta, datetime
@@ -48,11 +46,10 @@ from holidaily.settings import (
     PUSH_ENDPOINT_ANDROID,
     PUSH_ENDPOINT_IOS,
     APPCENTER_API_KEY,
-    COMMENT_PAGE_SIZE)
+    COMMENT_PAGE_SIZE,
+)
 import requests
 from django.conf import settings
-
-
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -158,7 +155,7 @@ class HolidayList(generics.GenericAPIView):
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
-            ).order_by('-date')
+            ).order_by("-date")
         serializer = HolidaySerializer(holidays, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -191,12 +188,12 @@ class HolidayList(generics.GenericAPIView):
         else:
             # Most recent holidays
             today = timezone.now()
-            if settings.TEST_MODE:
+            if settings.DEBUG:
                 holidays = Holiday.objects.filter(active=True).order_by("-id")[:5]
             else:
                 holidays = Holiday.objects.filter(
                     date__range=[today - timedelta(days=7), today], active=True
-                ).order_by('-date')
+                ).order_by("-date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -409,12 +406,14 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
 
             try:
-                device_user = UserProfile.objects.get(user__username=username, device_id=device_id).user.id
-            except:
+                device_user = UserProfile.objects.get(
+                    user__username=username, device_id=device_id
+                ).user.id
+            except:  # noqa
                 results = {
                     "status": HTTP_403_FORBIDDEN,
                     "message": "Have you switched devices recently? Something's strange about your activity. Please "
-                               "re-log in and try to delete this comment again.",
+                    "re-log in and try to delete this comment again.",
                 }
                 return Response(results)
             comment_user = comment.user.id
@@ -515,7 +514,7 @@ class CommentList(generics.GenericAPIView):
                 Holiday.objects.get(id=holiday)
                 .comment_set.filter(parent__isnull=True)
                 .order_by("-votes", "-id")
-            )[chunk:chunk + COMMENT_PAGE_SIZE]
+            )[chunk : chunk + COMMENT_PAGE_SIZE]
             for c in comments:
                 comment_group = [c]
                 depth = 0
