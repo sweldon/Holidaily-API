@@ -37,6 +37,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     is_premium = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
+    confetti = serializers.SerializerMethodField()
 
     def get_is_premium(self, obj):
         return UserProfile.objects.get(user=obj).premium
@@ -44,9 +45,12 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_active(self, obj):
         return UserProfile.objects.get(user=obj).active
 
+    def get_confetti(self, obj):
+        return UserProfile.objects.get(user=obj).confetti
+
     class Meta:
         model = User
-        fields = ("id", "username", "is_premium", "is_active")
+        fields = ("id", "username", "is_premium", "is_active", "confetti")
 
 
 class CommentSerializer(serializers.ModelSerializer):
