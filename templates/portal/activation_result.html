@@ -1,22 +1,36 @@
-
 {% load staticfiles %}
 <html>
-<title>Holidaily</title>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="/static/base/style/style.css?v={{version}}" />
-</head>
-<body>
-    <div class="container">
-    {% if status == 200 %}
-    <div class="denied" style="text-align: center;color:green;">
-       Account activation success! Head back to the app and log in!
-    </div>
-    {% else %}
-    <div class="denied" style="text-align: center;color:red;">
-        Account activation failed. Try registering again.
-     </div>
-    {% endif %}
-    </div>
-</body>
+    <title>Holidaily</title>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/static/base/style/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="/static/base/style/style.css?v={{version}}" />
+        <script>
+            function goBackToApp(){
+                var inUrl = document.location.href;
+                var toApp = "holidaily://?id=activated";
+                window.location = toApp;
+            }
+        </script>
+
+    </head>
+    <body>
+        <div class="container">
+            <div class="card card-container">
+            <h6 class='login_title text-center'><img width="100" height="100" style="margin-top:10px;"
+                                                     src='/static/base/img/holidaily-logo-1-inverted.png' /></h6>
+            {% if status == 200 %}
+            <div class="denied" style="text-align: center;color:green;">
+               You're activated! Redirecting you to the app...
+            </div>
+            <script>goBackToApp()</script>
+            {% else %}
+            <div class="denied" style="text-align: center;color:red;">
+                Account activation failed. Try registering again, your token may have expired.
+             </div>
+            {% endif %}
+            </div>
+        </div>
+    </body>
 </html>
