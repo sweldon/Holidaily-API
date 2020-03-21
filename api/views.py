@@ -108,7 +108,10 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         if logout is not None:
             profile.logged_out = bool(logout)
             profile.save()
-            results = {"message": f"{username} was logged out", "status": HTTP_200_OK}
+            results = {
+                "message": f"{username} logout status changed to: {logout}",
+                "status": HTTP_200_OK,
+            }
             return Response(results)
         elif token:
             # User bought premium
