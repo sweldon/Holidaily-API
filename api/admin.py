@@ -63,6 +63,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "premium_id",
         "premium_token",
         "premium_state",
+        "logged_out",
     )
     search_fields = (
         "user",
