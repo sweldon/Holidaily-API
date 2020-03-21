@@ -1,5 +1,3 @@
-from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from api.models import UserProfile
@@ -13,8 +11,7 @@ from django.core.mail import EmailMessage
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
-
-from api.serializers import UserSerializer, UserProfileSerializer
+from api.serializers import UserProfileSerializer
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -36,6 +33,11 @@ class UserLoginView(generics.GenericAPIView):
             )[0]
             active = user_profile.active
             if active:
+
+                # Re-enable notifications
+                user_profile.logged_out = False
+                user_profile.save()
+
                 # Update device ID if necessary
                 current_device_id = user_profile.device_id
                 if device_id != current_device_id:
@@ -74,6 +76,7 @@ class TokenGenerator(PasswordResetTokenGenerator):
 
 class UserRegisterView(generics.GenericAPIView):
     account_activation_token = TokenGenerator()
+
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -102,9 +105,14 @@ class UserRegisterView(generics.GenericAPIView):
             )
             activation_email = EmailMessage(mail_subject, message, to=[email])
             activation_email.send(fail_silently=False)
-            return Response({"message": "OK", "status": rest_status.HTTP_200_OK},
-                            status=rest_status.HTTP_200_OK)
+            return Response(
+                {"message": "OK", "status": rest_status.HTTP_200_OK},
+                status=rest_status.HTTP_200_OK,
+            )
         else:
             return Response(
-                {"message": "That name or email is taken, or not allowed", "status": rest_status.HTTP_400_BAD_REQUEST},
+                {
+                    "message": "That name or email is taken, or not allowed",
+                    "status": rest_status.HTTP_400_BAD_REQUEST,
+                },
             )

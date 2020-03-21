@@ -6,8 +6,13 @@ from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
 from api.constants import NEWS_NOTIFICATION
-from holidaily.settings import HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT, APPCENTER_API_KEY, PUSH_ENDPOINT_ANDROID, \
-    PUSH_ENDPOINT_IOS
+from holidaily.settings import (
+    HOLIDAY_IMAGE_WIDTH,
+    HOLIDAY_IMAGE_HEIGHT,
+    APPCENTER_API_KEY,
+    PUSH_ENDPOINT_ANDROID,
+    PUSH_ENDPOINT_IOS,
+)
 from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
@@ -36,13 +41,14 @@ NOTIFICATION_TYPES = (
 class UserProfile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,)
     active = models.BooleanField(default=True)
-    device_id = models.CharField(max_length=100)
+    device_id = models.TextField(blank=True, null=True)
     rewards = models.IntegerField(default=0)
     profile_image = models.TextField(blank=True, null=True)
     premium = models.BooleanField(default=False)
     premium_id = models.TextField(blank=True, null=True)
     premium_token = models.TextField(blank=True, null=True)
     premium_state = models.TextField(blank=True, null=True)
+    logged_out = models.BooleanField(default=False)
 
     @property
     def num_comments(self):
@@ -188,8 +194,15 @@ class UserNotifications(models.Model):
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
         if self.notification_type == NEWS_NOTIFICATION:
-            data = {"notification_content": {"name": "Announcement", "title": self.title, "body": self.content,
-                                             "custom_data": {"news": "true"}}, "notification_target": None}
+            data = {
+                "notification_content": {
+                    "name": "Announcement",
+                    "title": self.title,
+                    "body": self.content,
+                    "custom_data": {"news": "true"},
+                },
+                "notification_target": None,
+            }
             headers = {"X-API-Token": APPCENTER_API_KEY}
             requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
             requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)

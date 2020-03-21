@@ -102,9 +102,18 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         username = request.POST.get("username", None)
         token = request.POST.get("token", None)
         reward = request.POST.get("reward", None)
+        logout = request.POST.get("logout", None)
 
         profile = UserProfile.objects.filter(user__username=username).first()
-        if token:
+        if logout is not None:
+            profile.logged_out = bool(logout)
+            profile.save()
+            results = {
+                "message": f"{username} logout status changed to: {logout}",
+                "status": HTTP_200_OK,
+            }
+            return Response(results)
+        elif token:
             # User bought premium
             id = request.POST.get("id", None)
             state = request.POST.get("state", None)
@@ -448,24 +457,21 @@ class CommentList(generics.GenericAPIView):
                     parent=parent,
                 )
                 new_comment.save()
-
                 mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
                 devices = []
                 notifications = []
                 for user_mention in mentions:
-                    user_mention_obj = User.objects.filter(
-                        username=user_mention
+                    user_mention_profile = UserProfile.objects.filter(
+                        user__username=user_mention, logged_out=False
                     ).first()
-                    if user_mention_obj:
-                        user_mention_device = UserProfile.objects.get(
-                            user=user_mention_obj
-                        ).device_id
+                    if user_mention_profile:
+                        user_mention_device = user_mention_profile.device_id
                         if user_mention_device:
                             devices.append(user_mention_device)
                             n = UserNotifications(
                                 notification_id=new_comment.pk,
-                                notification_type=0,  # Comment
-                                user=user_mention_obj,
+                                notification_type=COMMENT_NOTIFICATION,  # Comment
+                                user=user_mention_profile.user,
                                 content=f"{username} mentioned you in a comment on {holiday.name}",
                                 title="You were mentioned!",
                             )
