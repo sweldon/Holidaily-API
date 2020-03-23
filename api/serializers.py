@@ -31,8 +31,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('holiday_submissions', 'approved_holidays', 'confetti',
-                  'num_comments', 'username', 'premium')
+        fields = (
+            "holiday_submissions",
+            "approved_holidays",
+            "confetti",
+            "num_comments",
+            "username",
+            "premium",
+        )
+
 
 class UserSerializer(serializers.ModelSerializer):
     is_premium = serializers.SerializerMethodField()
@@ -63,6 +70,7 @@ class CommentSerializer(serializers.ModelSerializer):
     parent = serializers.ReadOnlyField(source="self.pk")
     time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
+    deleted = serializers.BooleanField()
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
@@ -96,6 +104,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "parent",
             "time_since",
             "vote_status",
+            "deleted",
         )
 
 
@@ -143,7 +152,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "creator",
             "celebrating",
             "active",
-            "blurb"
+            "blurb",
         )
 
 
