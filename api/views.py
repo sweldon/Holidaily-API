@@ -427,13 +427,18 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
             comment_user = comment.user.id
             if device_user == comment_user:
-                notifications = UserNotifications.objects.filter(
-                    notification_id=comment.id, notification_type=COMMENT_NOTIFICATION
-                )
-                for n in notifications:
-                    n.delete()
-                comment.delete()
-                results = {"status": HTTP_200_OK, "message": "Comment deleted"}
+                # notifications = UserNotifications.objects.filter(
+                #     notification_id=comment.id, notification_type=COMMENT_NOTIFICATION
+                # )
+                # for n in notifications:
+                #     n.delete()
+                # comment.delete()
+                comment.deleted = True
+                comment.save()
+                results = {
+                    "status": HTTP_200_OK,
+                    "message": "Comment flagged for deletion",
+                }
                 return Response(results)
             else:
                 results = {

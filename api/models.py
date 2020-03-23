@@ -1,3 +1,5 @@
+from builtins import Exception
+
 import boto3
 from django.db import models
 from django.contrib.auth.models import User
@@ -122,24 +124,28 @@ class Holiday(models.Model):
 
     def save(self, *args, **kwargs):
 
-        suffix = self.image.split(".")[-1]
-        file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
+        if self.image:
+            try:
+                suffix = self.image.split(".")[-1]
+                file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
 
-        image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
-        image_data = requests.get(self.image).content
-        image_object = Image.open(BytesIO(image_data))
-        image_object.thumbnail(image_size)
+                image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+                image_data = requests.get(self.image).content
+                image_object = Image.open(BytesIO(image_data))
+                image_object.thumbnail(image_size)
 
-        byte_arr = BytesIO()
-        image_format = "PNG"
-        if suffix.lower() in ["jpg", "jpeg"]:
-            image_format = "JPEG"
+                byte_arr = BytesIO()
+                image_format = "PNG"
+                if suffix.lower() in ["jpg", "jpeg"]:
+                    image_format = "JPEG"
 
-        image_object.save(byte_arr, format=image_format)
-        s3_client = boto3.resource("s3")
-        s3_client.Bucket("holiday-images").put_object(
-            Key=file_name, Body=byte_arr.getvalue()
-        )
+                image_object.save(byte_arr, format=image_format)
+                s3_client = boto3.resource("s3")
+                s3_client.Bucket("holiday-images").put_object(
+                    Key=file_name, Body=byte_arr.getvalue()
+                )
+            except Exception as e:  # noqa
+                print(f"Could not save image: {e}")
         super(Holiday, self).save(*args, **kwargs)
 
 
@@ -152,6 +158,7 @@ class Comment(models.Model):
     timestamp = models.DateTimeField()
     votes = models.IntegerField(default=0)
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
+    deleted = models.BooleanField(default=False)
 
     @property
     def replies(self):
