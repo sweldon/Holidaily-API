@@ -405,8 +405,15 @@ class CommentList(generics.GenericAPIView):
         if delete:
             # Mobile, confirm mobile user requesting delete is the author
             device_id = request.POST.get("device_id", None)
-            if device_id:
+            if device_id is not None:
                 device_id = device_id.strip()
+            else:
+                results = {
+                    "status": HTTP_400_BAD_REQUEST,
+                    "message": "Have you switched accounts recently? We could not identify your device. Please re-log"
+                    " and try again!",
+                }
+                return Response(results)
             comment = Comment.objects.filter(id=delete).first()
             # Mobile, confirm mobile user requesting delete is the author
             if not comment:
@@ -423,8 +430,8 @@ class CommentList(generics.GenericAPIView):
             except:  # noqa
                 results = {
                     "status": HTTP_403_FORBIDDEN,
-                    "message": "Have you switched devices recently? Something's strange about your activity. Please "
-                    "re-log in and try to delete this comment again.",
+                    "message": "There was an issue identifying your device. Please re-log in and try to delete "
+                    "this comment again.",
                 }
                 return Response(results)
             comment_user = comment.user.id
