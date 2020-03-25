@@ -90,7 +90,7 @@ class UserList(APIView):
             user = User.objects.get(username=username)
             # Keep device id up to date
             profile = UserProfile.objects.filter(user=user).first()
-            if profile and device_id != profile.device_id:
+            if profile and device_id and device_id != profile.device_id:
                 profile.device_id = device_id
                 profile.save()
         else:
