@@ -85,8 +85,14 @@ class UserList(APIView):
 
     def post(self, request):
         username = request.POST.get("username", None)
+        device_id = request.POST.get("device_id", None)
         if username:
             user = User.objects.get(username=username)
+            # Keep device id up to date
+            profile = UserProfile.objects.filter(user=user).first()
+            if profile and device_id != profile.device_id:
+                profile.device_id = device_id
+                profile.save()
         else:
             raise RequestError("Please provide a username for POST requests")
         serializer = UserSerializer(user)
