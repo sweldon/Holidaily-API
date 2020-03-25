@@ -405,6 +405,8 @@ class CommentList(generics.GenericAPIView):
         if delete:
             # Mobile, confirm mobile user requesting delete is the author
             device_id = request.POST.get("device_id", None)
+            if device_id:
+                device_id = device_id.strip()
             comment = Comment.objects.filter(id=delete).first()
             # Mobile, confirm mobile user requesting delete is the author
             if not comment:
