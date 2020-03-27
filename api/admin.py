@@ -40,6 +40,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "date",
         "active",
         "get_image",
+        "image_format",
         "image",
         "description",
         "push",

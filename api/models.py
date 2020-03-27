@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
-from api.constants import NEWS_NOTIFICATION
+from api.constants import NEWS_NOTIFICATION, CLOUDFRONT_DOMAIN
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
@@ -94,11 +94,16 @@ class Holiday(models.Model):
     votes = models.IntegerField(default=0)
     push = models.TextField(null=True, blank=True)
     image = models.TextField(null=True)
+    image_name = models.CharField(max_length=100, default=None, null=True, blank=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     active = models.BooleanField(default=True)
     blurb = models.TextField(null=True)
+    IMAGE_FORMATS = (("jpeg", "jpeg"), ("png", "png"))
+    image_format = models.CharField(
+        max_length=10, choices=IMAGE_FORMATS, default="jpeg"
+    )
 
     @property
     def num_comments(self):
@@ -107,13 +112,21 @@ class Holiday(models.Model):
     def get_image(self):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
-            % (self.image, HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+            % (
+                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
+                HOLIDAY_IMAGE_WIDTH,
+                HOLIDAY_IMAGE_HEIGHT,
+            )
         )
 
     def get_image_small(self):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
-            % (self.image, HOLIDAY_IMAGE_WIDTH / 2, HOLIDAY_IMAGE_HEIGHT / 2)
+            % (
+                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
+                HOLIDAY_IMAGE_WIDTH / 2,
+                HOLIDAY_IMAGE_HEIGHT / 2,
+            )
         )
 
     get_image.short_description = "Image Preview"
@@ -126,24 +139,19 @@ class Holiday(models.Model):
 
         if self.image:
             try:
-                suffix = self.image.split(".")[-1]
-                file_name = f"{self.name.strip().replace(' ', '-')}.{suffix}"
-
+                file_name = f"{self.name.strip().replace(' ', '-')}.{self.image_format}"
                 image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
                 image_data = requests.get(self.image).content
                 image_object = Image.open(BytesIO(image_data))
                 image_object.thumbnail(image_size)
 
                 byte_arr = BytesIO()
-                image_format = "PNG"
-                if suffix.lower() in ["jpg", "jpeg"]:
-                    image_format = "JPEG"
-
-                image_object.save(byte_arr, format=image_format)
+                image_object.save(byte_arr, format=self.image_format)
                 s3_client = boto3.resource("s3")
                 s3_client.Bucket("holiday-images").put_object(
                     Key=file_name, Body=byte_arr.getvalue()
                 )
+                self.image_name = file_name
             except Exception as e:  # noqa
                 print(f"Could not save image: {e}")
         super(Holiday, self).save(*args, **kwargs)

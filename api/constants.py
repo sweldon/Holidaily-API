@@ -37,3 +37,5 @@ DOWNVOTE = "down"
 
 NEWS_NOTIFICATION = 1
 COMMENT_NOTIFICATION = 0
+
+CLOUDFRONT_DOMAIN = "https://d2cwe0vw7pxea6.cloudfront.net"
