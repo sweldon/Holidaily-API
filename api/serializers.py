@@ -17,6 +17,7 @@ from api.constants import (
     DOWNVOTE_ONLY,
     NEWS_NOTIFICATION,
     COMMENT_NOTIFICATION,
+    CLOUDFRONT_DOMAIN,
 )
 from django.utils import timezone
 import humanize
@@ -114,7 +115,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     description = serializers.CharField()
     votes = serializers.IntegerField()
     push = serializers.CharField()
-    image = serializers.CharField()
+    image = serializers.SerializerMethodField()
     date = serializers.DateField()
     num_comments = serializers.IntegerField()
     time_since = serializers.SerializerMethodField()
@@ -122,6 +123,9 @@ class HolidaySerializer(serializers.ModelSerializer):
     celebrating = serializers.SerializerMethodField()
     active = serializers.BooleanField()
     blurb = serializers.CharField()
+
+    def get_image(self, obj):
+        return f"{CLOUDFRONT_DOMAIN}/{obj.image_name}"
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
