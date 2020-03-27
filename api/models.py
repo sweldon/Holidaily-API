@@ -7,7 +7,11 @@ from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
-from api.constants import NEWS_NOTIFICATION, S3_BUCKET_IMAGES
+from api.constants import (
+    NEWS_NOTIFICATION,
+    CLOUDFRONT_DOMAIN,
+    CLOUDFRONT_DISTRIBUTION_ID,
+)
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
@@ -22,6 +26,8 @@ from django.db.models import Sum
 import requests
 from PIL import Image
 from io import BytesIO
+from time import time
+
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
@@ -38,6 +44,8 @@ NOTIFICATION_TYPES = (
     (0, "comment"),
     (1, "news"),
 )
+S3_CLIENT = boto3.resource("s3")
+CF_CLIENT = boto3.client("cloudfront")
 
 
 class UserProfile(models.Model):
@@ -113,7 +121,7 @@ class Holiday(models.Model):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
             % (
-                f"{S3_BUCKET_IMAGES}/{self.image_name}",
+                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
                 HOLIDAY_IMAGE_WIDTH,
                 HOLIDAY_IMAGE_HEIGHT,
             )
@@ -123,7 +131,7 @@ class Holiday(models.Model):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
             % (
-                f"{S3_BUCKET_IMAGES}/{self.image_name}",
+                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
                 HOLIDAY_IMAGE_WIDTH / 2,
                 HOLIDAY_IMAGE_HEIGHT / 2,
             )
@@ -147,9 +155,16 @@ class Holiday(models.Model):
 
                 byte_arr = BytesIO()
                 image_object.save(byte_arr, format=self.image_format)
-                s3_client = boto3.resource("s3")
-                s3_client.Bucket("holiday-images").put_object(
+                S3_CLIENT.Bucket("holiday-images").put_object(
                     Key=file_name, Body=byte_arr.getvalue()
+                )
+                # Invalidate cloudfront cache
+                CF_CLIENT.create_invalidation(
+                    DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
+                    InvalidationBatch={
+                        "Paths": {"Quantity": 1, "Items": [f"/{file_name}"]},
+                        "CallerReference": str(time()).replace(".", ""),
+                    },
                 )
                 self.image_name = file_name
             except Exception as e:  # noqa
