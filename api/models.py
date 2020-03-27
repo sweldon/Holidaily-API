@@ -9,7 +9,7 @@ from pygments.styles import get_all_styles
 
 from api.constants import (
     NEWS_NOTIFICATION,
-    CLOUDFRONT_DOMAIN,
+    S3_BUCKET_IMAGES,
     CLOUDFRONT_DISTRIBUTION_ID,
 )
 from holidaily.settings import (
@@ -121,7 +121,7 @@ class Holiday(models.Model):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
             % (
-                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
+                f"{S3_BUCKET_IMAGES}/{self.image_name}",
                 HOLIDAY_IMAGE_WIDTH,
                 HOLIDAY_IMAGE_HEIGHT,
             )
@@ -131,7 +131,7 @@ class Holiday(models.Model):
         return mark_safe(
             '<img src="%s" width="%s" height="%s" />'
             % (
-                f"{CLOUDFRONT_DOMAIN}/{self.image_name}",
+                f"{S3_BUCKET_IMAGES}/{self.image_name}",
                 HOLIDAY_IMAGE_WIDTH / 2,
                 HOLIDAY_IMAGE_HEIGHT / 2,
             )
