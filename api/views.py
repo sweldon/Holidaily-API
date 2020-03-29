@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.forms import model_to_dict
 
 from holidaily.utils import send_slack
@@ -49,7 +50,6 @@ from holidaily.settings import (
     COMMENT_PAGE_SIZE,
 )
 import requests
-from django.conf import settings
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -78,7 +78,9 @@ class UserList(APIView):
 
     def get(self, request):
         top_users = UserProfile.objects.all()[:20]
-        user_list = sorted(top_users, key=lambda x: x.confetti)
+        user_list = sorted(
+            [u for u in top_users if u.confetti > 0], key=lambda x: x.confetti
+        )
         serializer = UserProfileSerializer(user_list, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -203,12 +205,9 @@ class HolidayList(generics.GenericAPIView):
         else:
             # Most recent holidays
             today = timezone.now()
-            if settings.DEBUG:
-                holidays = Holiday.objects.filter(active=True).order_by("-id")[:5]
-            else:
-                holidays = Holiday.objects.filter(
-                    date__range=[today - timedelta(days=7), today], active=True
-                ).order_by("-date")
+            holidays = Holiday.objects.filter(
+                date__range=[today - timedelta(days=7), today], active=True
+            ).order_by("-date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -463,7 +462,6 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
         elif content:
             parent_id = request.POST.get("parent", None)
-
             holiday = Holiday.objects.get(id=holiday)
             parent = Comment.objects.get(id=parent_id) if parent_id else None
             user = User.objects.get(username=username)
@@ -481,9 +479,14 @@ class CommentList(generics.GenericAPIView):
                 devices = []
                 notifications = []
                 for user_mention in mentions:
-                    user_mention_profile = UserProfile.objects.filter(
-                        user__username=user_mention, logged_out=False
-                    ).first()
+                    # Get user profiles, exclude self if user mentions themself for some reason
+                    user_mention_profile = (
+                        UserProfile.objects.filter(
+                            user__username=user_mention, logged_out=False
+                        )
+                        .exclude(user__username=user.username)
+                        .first()
+                    )
                     if user_mention_profile:
                         user_mention_device = user_mention_profile.device_id
                         if user_mention_device:
@@ -547,9 +550,12 @@ class CommentList(generics.GenericAPIView):
                 if c.comment_set.all().count() > 0:
                     replies = self.get_replies(c, depth, username)
                     comment_group.extend(replies)
+                # Skip deleted top level comments with no replies
+                if len(comment_group) == 1 and comment_group[0].deleted:
+                    continue
                 comment_list.append(comment_group)
 
-            # TODO: the actual object is good just needs to be serialized'
+            # Custom serializing for padding/vote status, etc.
             results = []
             for sub_list in comment_list:
                 serialized_sublist = []
@@ -561,6 +567,7 @@ class CommentList(generics.GenericAPIView):
                     c_dict["user"] = c.user.username
                     c_dict["vote_status"] = self.get_vote_status(username, c)
                     depth += 20
+                    # print(c.parent.id if c.parent else None)
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
             results = {"results": results}
@@ -575,6 +582,7 @@ class UserNotificationsView(generics.GenericAPIView):
     # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
+        # News page
         notifications = UserNotifications.objects.filter(
             notification_type=NEWS_NOTIFICATION
         ).order_by("-id")[:20]
@@ -584,11 +592,9 @@ class UserNotificationsView(generics.GenericAPIView):
 
     def post(self, request):
         username = request.POST.get("username", None)
-        notifications = (
-            UserNotifications.objects.filter(user__username=username)
-            .exclude(notification_type=NEWS_NOTIFICATION)
-            .order_by("-id")[:20]
-        )
+        notifications = UserNotifications.objects.filter(
+            Q(user__username=username) | Q(notification_type=NEWS_NOTIFICATION)
+        ).order_by("-id")[:20]
         serializer = UserNotificationsSerializer(notifications, many=True)
         results = {"results": serializer.data}
         return Response(results)
