@@ -110,7 +110,8 @@ class Holiday(models.Model):
 
     @property
     def num_comments(self):
-        return self.comment_set.all().count()
+        # Note, this doesn't currently include replies
+        return self.comment_set.filter(deleted=False).count()
 
     def get_image(self):
         return mark_safe(
