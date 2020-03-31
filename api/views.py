@@ -560,14 +560,26 @@ class CommentList(generics.GenericAPIView):
             for sub_list in comment_list:
                 serialized_sublist = []
                 depth = 10
+                padding_dict = {}
                 for c in sub_list:
                     c_dict = model_to_dict(c)
-                    c_dict["depth"] = depth
+
+                    # Parent top level padding
+                    if not c.parent:
+                        c_dict["depth"] = depth
+                    else:
+                        if c.parent in padding_dict:
+                            depth = padding_dict[c.parent]
+                        else:
+                            depth += 10
+                            padding_dict[c.parent] = depth
+                        c_dict["depth"] = depth
+
                     c_dict["time_since"] = c.time_since
                     c_dict["user"] = c.user.username
                     c_dict["vote_status"] = self.get_vote_status(username, c)
+
                     depth += 20
-                    # print(c.parent.id if c.parent else None)
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
             results = {"results": results}
