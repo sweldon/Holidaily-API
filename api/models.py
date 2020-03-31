@@ -7,7 +7,12 @@ from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
-from api.constants import NEWS_NOTIFICATION, S3_BUCKET_IMAGES, S3_BUCKET_NAME
+from api.constants import (
+    NEWS_NOTIFICATION,
+    S3_BUCKET_IMAGES,
+    S3_BUCKET_NAME,
+    CLOUDFRONT_DISTRIBUTION_ID,
+)
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
@@ -155,13 +160,15 @@ class Holiday(models.Model):
                     Key=file_name, Body=byte_arr.getvalue()
                 )
                 # Invalidate cloudfront cache
-                # CF_CLIENT.create_invalidation(
-                #     DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
-                #     InvalidationBatch={
-                #         "Paths": {"Quantity": 1, "Items": [f"/{file_name}"]},
-                #         "CallerReference": str(time()).replace(".", ""),
-                #     },
-                # )
+                from time import time
+
+                CF_CLIENT.create_invalidation(
+                    DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
+                    InvalidationBatch={
+                        "Paths": {"Quantity": 1, "Items": [f"/{file_name}"]},
+                        "CallerReference": str(time()).replace(".", ""),
+                    },
+                )
                 self.image_name = file_name
             except Exception as e:  # noqa
                 print(f"Could not save image: {e}")
