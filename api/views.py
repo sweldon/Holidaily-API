@@ -196,11 +196,14 @@ class HolidayList(generics.GenericAPIView):
 
             if is_date:
                 holidays = Holiday.objects.filter(
-                    date=datetime.strptime(search.split(" ")[0], "%m/%d/%Y"),
-                    active=True,
+                    Q(date=datetime.strptime(search.split(" ")[0], "%m/%d/%Y")),
+                    Q(active=True) | (Q(active=False) & Q(creator__isnull=True)),
                 )
             else:
-                holidays = Holiday.objects.filter(name__icontains=search, active=True)
+                holidays = Holiday.objects.filter(
+                    Q(name__icontains=search),
+                    Q(active=True) | (Q(active=False) & Q(creator__isnull=True)),
+                )
 
         else:
             # Most recent holidays
