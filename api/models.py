@@ -1,3 +1,4 @@
+import hashlib
 from builtins import Exception
 
 import boto3
@@ -11,7 +12,6 @@ from api.constants import (
     NEWS_NOTIFICATION,
     S3_BUCKET_IMAGES,
     S3_BUCKET_NAME,
-    CLOUDFRONT_DISTRIBUTION_ID,
 )
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
@@ -148,7 +148,6 @@ class Holiday(models.Model):
 
         if self.image:
             try:
-                file_name = f"{self.name.strip().replace(' ', '-')}.{self.image_format}"
                 image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
                 image_data = requests.get(self.image).content
                 image_object = Image.open(BytesIO(image_data))
@@ -156,20 +155,17 @@ class Holiday(models.Model):
 
                 byte_arr = BytesIO()
                 image_object.save(byte_arr, format=self.image_format)
-                S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
-                    Key=file_name, Body=byte_arr.getvalue()
-                )
-                # Invalidate cloudfront cache
-                from time import time
-
-                CF_CLIENT.create_invalidation(
-                    DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
-                    InvalidationBatch={
-                        "Paths": {"Quantity": 1, "Items": [f"/{file_name}"]},
-                        "CallerReference": str(time()).replace(".", ""),
-                    },
-                )
-                self.image_name = file_name
+                image_data = byte_arr.getvalue()
+                image_hash = hashlib.md5(image_data).hexdigest()
+                image_suffix = f"-{image_hash}.{self.image_format}"
+                if not self.image_name.endswith(image_suffix):
+                    new_image_name = f"{self.name.strip().replace(' ', '-')}-{image_hash}.{self.image_format}"
+                    S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                        Key=new_image_name, Body=image_data
+                    )
+                    self.image_name = new_image_name
+                else:
+                    print(f"Image is the same with hash {image_hash}")
             except Exception as e:  # noqa
                 print(f"Could not save image: {e}")
         super(Holiday, self).save(*args, **kwargs)
