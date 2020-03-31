@@ -17,7 +17,7 @@ from api.constants import (
     DOWNVOTE_ONLY,
     NEWS_NOTIFICATION,
     COMMENT_NOTIFICATION,
-    S3_BUCKET_IMAGES,
+    CLOUDFRONT_DOMAIN,
 )
 from django.utils import timezone
 import humanize
@@ -125,7 +125,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     blurb = serializers.CharField()
 
     def get_image(self, obj):
-        return f"{S3_BUCKET_IMAGES}/{obj.image_name}"
+        return f"{CLOUDFRONT_DOMAIN}/{obj.image_name}"
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
