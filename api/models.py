@@ -112,6 +112,7 @@ class Holiday(models.Model):
     image_format = models.CharField(
         max_length=10, choices=IMAGE_FORMATS, default="jpeg"
     )
+    created = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
     @property
     def num_comments(self):
