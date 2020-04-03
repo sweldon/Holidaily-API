@@ -42,3 +42,5 @@ CLOUDFRONT_DOMAIN = "https://d2cwe0vw7pxea6.cloudfront.net"
 S3_BUCKET_IMAGES = "https://holiday-images.s3.amazonaws.com"
 CLOUDFRONT_DISTRIBUTION_ID = "E39ITKFPUWXC5N"
 S3_BUCKET_NAME = "holiday-images"
+
+MAX_COMMENT_DEPTH = 150

@@ -40,7 +40,7 @@ from api.constants import (
     UPVOTE_ONLY,
     NEWS_NOTIFICATION,
     COMMENT_NOTIFICATION,
-)
+    MAX_COMMENT_DEPTH)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -375,7 +375,7 @@ class CommentList(generics.GenericAPIView):
         results = {"results": serializer.data}
         return Response(results)
 
-    def get_replies(self, comment, depth, username):
+    def get_replies(self, comment, username):
         """ Recursively get comment reply chain """
         reply_chain = []
         replies = comment.comment_set.all().order_by("-votes", "-id")
@@ -383,8 +383,7 @@ class CommentList(generics.GenericAPIView):
         for c in replies:
             reply_chain.append(c)
             if c.comment_set.all().count() > 0:
-                depth += 20
-                child_replies = self.get_replies(c, depth, username)
+                child_replies = self.get_replies(c, username)
                 reply_chain.extend(child_replies)
 
         return reply_chain
@@ -549,9 +548,8 @@ class CommentList(generics.GenericAPIView):
             )[chunk : chunk + COMMENT_PAGE_SIZE]
             for c in comments:
                 comment_group = [c]
-                depth = 0
                 if c.comment_set.all().count() > 0:
-                    replies = self.get_replies(c, depth, username)
+                    replies = self.get_replies(c, username)
                     comment_group.extend(replies)
                 # Skip deleted top level comments with no replies
                 if len(comment_group) == 1 and comment_group[0].deleted:
@@ -562,27 +560,27 @@ class CommentList(generics.GenericAPIView):
             results = []
             for sub_list in comment_list:
                 serialized_sublist = []
+                # Entire thread parent, default padding
                 depth = 10
                 padding_dict = {}
                 for c in sub_list:
+                    # Replies
                     c_dict = model_to_dict(c)
-
-                    # Parent top level padding
                     if not c.parent:
                         c_dict["depth"] = depth
                     else:
+                        # If parent is in dict, inherit its padding
                         if c.parent in padding_dict:
                             depth = padding_dict[c.parent]
                         else:
-                            depth += 10
+                            # Otherwise add new parent to dict
+                            if depth <= MAX_COMMENT_DEPTH:
+                                depth += 30
                             padding_dict[c.parent] = depth
                         c_dict["depth"] = depth
-
                     c_dict["time_since"] = c.time_since
                     c_dict["user"] = c.user.username
                     c_dict["vote_status"] = self.get_vote_status(username, c)
-
-                    depth += 20
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
             results = {"results": results}
