@@ -266,7 +266,6 @@ a{
         min-width: 300px;
     }
     #storelinks{
-        opacity: .5;
         cursor:pointer;
         margin: -18 auto !important;
     }
