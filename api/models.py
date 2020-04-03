@@ -158,7 +158,7 @@ class Holiday(models.Model):
                 image_data = byte_arr.getvalue()
                 image_hash = hashlib.md5(image_data).hexdigest()
                 image_suffix = f"-{image_hash}.{self.image_format}"
-                if not self.image_name.endswith(image_suffix):
+                if not self.image_name or not self.image_name.endswith(image_suffix):
                     new_image_name = f"{self.name.strip().replace(' ', '-')}-{image_hash}.{self.image_format}"
                     S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
                         Key=new_image_name, Body=image_data
