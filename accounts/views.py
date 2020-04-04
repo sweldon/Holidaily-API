@@ -12,6 +12,9 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
 from api.serializers import UserProfileSerializer
+from api.disallowed_usernames import BAD_USERNAMES, BASIC_BAD_WORDS
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -83,11 +86,42 @@ class UserRegisterView(generics.GenericAPIView):
         email = request.data.get("email", None)
         existing_user = User.objects.filter(username=username).exists()
         existing_email = User.objects.filter(email=email).exists()
+
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            reasons = " ".join(e)
+            error_message = f"Your password isn't strong enough: {reasons}"
+            return Response(
+                {"message": error_message, "status": rest_status.HTTP_400_BAD_REQUEST},
+            )
+
+        # Initial bad word check
+        for word in BASIC_BAD_WORDS:
+            if word in username.lower():
+                return Response(
+                    {
+                        "message": "That username or email is taken, or not allowed.",
+                        "status": rest_status.HTTP_400_BAD_REQUEST,
+                    },
+                )
+
         if (
-            not existing_email
-            and not existing_user
-            and email.split("@")[0] not in DISALLOWED_EMAILS
+            existing_email
+            or existing_user
+            or email.split("@")[0] in DISALLOWED_EMAILS
+            or "holidaily" in username.lower()
+            or "holidaily" in email.lower()
+            or "dvnt" in username.lower()
+            or username in BAD_USERNAMES
         ):
+            return Response(
+                {
+                    "message": "That username or email is taken, or not allowed.",
+                    "status": rest_status.HTTP_400_BAD_REQUEST,
+                },
+            )
+        else:
             # User profile will be created on first login
             user = User.objects.create_user(
                 username=username, password=password, is_active=False, email=email
@@ -108,11 +142,4 @@ class UserRegisterView(generics.GenericAPIView):
             return Response(
                 {"message": "OK", "status": rest_status.HTTP_200_OK},
                 status=rest_status.HTTP_200_OK,
-            )
-        else:
-            return Response(
-                {
-                    "message": "That name or email is taken, or not allowed",
-                    "status": rest_status.HTTP_400_BAD_REQUEST,
-                },
             )

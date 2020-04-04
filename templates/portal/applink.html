@@ -55,18 +55,15 @@ $( document ).ready(function() {
             }
         }else{
             if (/android/i.test(userAgent)) {
-                window.location = toApp;
                 setTimeout(function() {
                     window.location = 'https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'
                 }, 1000);
             }
 
             if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                window.location = toApp;
-                // setTimeout(function() {
-                //     //window.location = 'https://www.apple.com/ios/app-store'
-                //     alert("Holidaily is coming to the iOS AppStore soon. Stay tuned!");
-                // }, 3000);
+                 setTimeout(function() {
+                     window.location = 'https://testflight.apple.com/join/FNzb5yCO'
+                 }, 3000);
             }
         }
     })
