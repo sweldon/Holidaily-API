@@ -59,6 +59,10 @@ class UserProfile(models.Model):
     premium_token = models.TextField(blank=True, null=True)
     premium_state = models.TextField(blank=True, null=True)
     logged_out = models.BooleanField(default=False)
+    blocked_users = models.ManyToManyField(User, related_name="blocked_users")
+    reported_comments = models.ManyToManyField(
+        "Comment", related_name="reported_comments"
+    )
 
     @property
     def num_comments(self):
@@ -182,6 +186,7 @@ class Comment(models.Model):
     votes = models.IntegerField(default=0)
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
     deleted = models.BooleanField(default=False)
+    reports = models.IntegerField(default=0)
 
     @property
     def replies(self):
