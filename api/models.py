@@ -59,9 +59,11 @@ class UserProfile(models.Model):
     premium_token = models.TextField(blank=True, null=True)
     premium_state = models.TextField(blank=True, null=True)
     logged_out = models.BooleanField(default=False)
-    blocked_users = models.ManyToManyField(User, related_name="blocked_users")
+    blocked_users = models.ManyToManyField(
+        User, related_name="blocked_users", blank=True, null=True
+    )
     reported_comments = models.ManyToManyField(
-        "Comment", related_name="reported_comments"
+        "Comment", related_name="reported_comments", blank=True, null=True
     )
 
     @property
