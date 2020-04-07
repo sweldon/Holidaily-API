@@ -35,7 +35,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "date",
         "creator__username",
     )
-    ordering = ('-created',)
+    ordering = ("-created",)
     readonly_fields = ("get_image", "created")
     fields = (
         "name",
@@ -86,6 +86,7 @@ class CommentAdmin(admin.ModelAdmin):
         "user",
         "timestamp",
         "votes",
+        "reports",
         "parent",
     )
     search_fields = ("content", "holiday", "user")

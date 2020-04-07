@@ -44,3 +44,6 @@ CLOUDFRONT_DISTRIBUTION_ID = "E39ITKFPUWXC5N"
 S3_BUCKET_NAME = "holiday-images"
 
 MAX_COMMENT_DEPTH = 150
+
+TRUTHY_STRS = ("yes", "y", "true", "t", "1", "True")
+FALSY_STRS = ("no", "n", "false", "0", "False")

@@ -40,7 +40,9 @@ from api.constants import (
     UPVOTE_ONLY,
     NEWS_NOTIFICATION,
     COMMENT_NOTIFICATION,
-    MAX_COMMENT_DEPTH)
+    MAX_COMMENT_DEPTH,
+    TRUTHY_STRS,
+)
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import (
@@ -326,6 +328,9 @@ class CommentDetail(APIView):
     def post(self, request, pk):
         vote = request.POST.get("vote", None)
         username = request.POST.get("username", None)
+        report = request.POST.get("report", None)
+        block_request = request.POST.get("block", None)
+        block = True if block_request in TRUTHY_STRS else False
         comment = self.get_object(pk)
 
         if vote:
@@ -352,7 +357,15 @@ class CommentDetail(APIView):
                 user_vote.save()
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
-
+        elif report:
+            comment.reports += 1
+            comment.save()
+            user_profile = UserProfile.objects.get(user__username=username)
+            user_profile.reported_comments.add(comment)
+            if block:
+                user_profile.blocked_users.add(comment.user)
+            results = {"status": HTTP_200_OK, "message": "OK"}
+            return Response(results)
         else:
             comment = self.get_object(pk)
             serializer = CommentSerializer(comment, context={"username": username})
@@ -558,6 +571,11 @@ class CommentList(generics.GenericAPIView):
 
             # Custom serializing for padding/vote status, etc.
             results = []
+            profile = UserProfile.objects.filter(user__username=username).first()
+            blocked_users, reported_comments = [], []
+            if profile:
+                blocked_users = profile.blocked_users.all()
+                reported_comments = profile.reported_comments.all()
             for sub_list in comment_list:
                 serialized_sublist = []
                 # Entire thread parent, default padding
@@ -581,6 +599,14 @@ class CommentList(generics.GenericAPIView):
                     c_dict["time_since"] = c.time_since
                     c_dict["user"] = c.user.username
                     c_dict["vote_status"] = self.get_vote_status(username, c)
+
+                    c_dict["blocked"] = False
+                    c_dict["reported"] = False
+                    if c in reported_comments:
+                        c_dict["reported"] = True
+                    if c.user in blocked_users:
+                        c_dict["blocked"] = True
+
                     serialized_sublist.append(c_dict)
                 results.append(serialized_sublist)
             results = {"results": results}
