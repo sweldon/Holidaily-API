@@ -363,9 +363,7 @@ class CommentDetail(APIView):
             user_profile = UserProfile.objects.get(user__username=username)
             user_profile.reported_comments.add(comment)
             if block:
-                print("BLOCKING")
                 user_profile.blocked_users.add(comment.user)
-
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
         else:
