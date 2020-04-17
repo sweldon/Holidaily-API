@@ -16,6 +16,9 @@ from api.disallowed_usernames import BAD_USERNAMES, BASIC_BAD_WORDS
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+from holidaily.settings import ENABLE_NEW_USER_ALERT
+from holidaily.utils import send_slack
+
 
 class UserLoginView(generics.GenericAPIView):
     def post(self, request):
@@ -139,6 +142,11 @@ class UserRegisterView(generics.GenericAPIView):
             )
             activation_email = EmailMessage(mail_subject, message, to=[email])
             activation_email.send(fail_silently=False)
+            if ENABLE_NEW_USER_ALERT:
+                send_slack(
+                    f":tada: NEW USER ALERT :tada: *{username}* ({email})",
+                    channel="hype",
+                )
             return Response(
                 {"message": "OK", "status": rest_status.HTTP_200_OK},
                 status=rest_status.HTTP_200_OK,
