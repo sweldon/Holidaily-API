@@ -241,7 +241,6 @@ class UserHolidays(HolidayList):
                 description = request.POST.get("description", None)
                 date = request.POST.get("date", None)
                 date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
-                print(date, date_formatted)
                 Holiday.objects.create(
                     name=submission,
                     description=description,
@@ -365,6 +364,12 @@ class CommentDetail(APIView):
             user_profile.reported_comments.add(comment)
             if block:
                 user_profile.blocked_users.add(comment.user)
+            send_slack(
+                f"[*REPORT RECEIVED*] _{username}_ has submitted a report for a comment by _{comment.user}_,"
+                f" on _{comment.holiday.name}_. See comment below.\n"
+                f"```{comment.content}```\n"
+                f"- Link to comment in Admin: https://holidailyapp.com/admin/api/comment/{comment.id}/"
+            )
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
         else:
