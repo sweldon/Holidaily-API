@@ -48,3 +48,5 @@ MAX_COMMENT_DEPTH = 80
 TRUTHY_STRS = ("yes", "y", "true", "t", "1", "True")
 FALSY_STRS = ("no", "n", "false", "0", "False")
 REPLY_DEPTH = 20
+
+DEFAULT_SLACK_CHANNEL = "holidaily-updates"

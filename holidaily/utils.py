@@ -1,3 +1,4 @@
+from api.constants import DEFAULT_SLACK_CHANNEL
 from holidaily.settings import SLACK_CLIENT
 
 
@@ -8,7 +9,12 @@ def normalize_time(time_ago: str, time_type: str) -> str:
     if time_type == "precise":
         return time_ago
     elif time_type == "relative":
-        if "hours" in time_ago or "minutes" in time_ago or time_ago == "now" or time_ago == "just now":
+        if (
+            "hours" in time_ago
+            or "minutes" in time_ago
+            or time_ago == "now"
+            or time_ago == "just now"
+        ):
             return "Today"
         elif time_ago == "1 day ago" or time_ago == "a day ago":
             return "Yesterday"
@@ -16,5 +22,5 @@ def normalize_time(time_ago: str, time_type: str) -> str:
             return time_ago
 
 
-def send_slack(message):
-    SLACK_CLIENT.chat_postMessage(channel="#holidaily-updates", text=message)
+def send_slack(message, channel=DEFAULT_SLACK_CHANNEL):
+    SLACK_CLIENT.chat_postMessage(channel=f"#{channel}", text=message)
