@@ -42,6 +42,7 @@ from api.constants import (
     COMMENT_NOTIFICATION,
     MAX_COMMENT_DEPTH,
     TRUTHY_STRS,
+    REPLY_DEPTH
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -598,7 +599,7 @@ class CommentList(generics.GenericAPIView):
                         else:
                             # Otherwise add new parent to dict
                             if depth <= MAX_COMMENT_DEPTH:
-                                depth += 30
+                                depth += REPLY_DEPTH
                             padding_dict[c.parent] = depth
                         c_dict["depth"] = depth
                     c_dict["time_since"] = c.time_since
