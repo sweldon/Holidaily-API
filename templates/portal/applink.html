@@ -55,15 +55,15 @@ $( document ).ready(function() {
             }
         }else{
             if (/android/i.test(userAgent)) {
-                setTimeout(function() {
-                    window.location = 'https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'
-                }, 1000);
+                // setTimeout(function() {
+                //     window.location = 'https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'
+                // }, 1000);
             }
 
             if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                 setTimeout(function() {
-                     window.location = 'https://testflight.apple.com/join/FNzb5yCO'
-                 }, 3000);
+                //  setTimeout(function() {
+                //      window.location = 'https://testflight.apple.com/join/FNzb5yCO'
+                //  }, 3000);
             }
         }
     })
@@ -83,9 +83,9 @@ $( document ).ready(function() {
             </div>
             <div id="storelinks">
                 <img alt='Get it on Google Play' src='/static/base/img/google-play-badge.png'
-                     onclick="window.location='https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'" />
+                    onclick="window.location='https://play.google.com/store/apps/details?id=com.divinity.holidailyapp'" />
                 <img src='/static/base/img/appstore-badge.png'
-                     onclick="window.location='https://testflight.apple.com/join/FNzb5yCO'" />
+                    onclick="window.location='https://apps.apple.com/us/app/holidaily-find-holidays/id1449681401?ls=1'" />
                 <br /><br />
                 <div class="sharethis-inline-follow-buttons"></div>
             </div>
