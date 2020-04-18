@@ -42,7 +42,7 @@ from api.constants import (
     COMMENT_NOTIFICATION,
     MAX_COMMENT_DEPTH,
     TRUTHY_STRS,
-    REPLY_DEPTH
+    REPLY_DEPTH,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -80,10 +80,7 @@ class UserList(APIView):
     serializer_class = UserSerializer
 
     def get(self, request):
-        top_users = UserProfile.objects.all()[:20]
-        user_list = sorted(
-            [u for u in top_users if u.confetti > 0], key=lambda x: x.confetti
-        )
+        user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[:50]
         serializer = UserProfileSerializer(user_list, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -335,18 +332,23 @@ class CommentDetail(APIView):
 
         if vote:
             vote = int(vote)
+            profile = UserProfile.objects.filter(user=comment.user).first()
             if vote in SINGLE_UP:
                 comment.votes += 1
+                profile.confetti += 1
             elif vote in SINGLE_DOWN:
                 comment.votes -= 1
+                profile.confetti -= 1
             elif vote == UP_FROM_DOWN:
                 comment.votes += 2
+                profile.confetti += 2
             elif vote == DOWN_FROM_UP:
                 comment.votes -= 2
+                profile.confetti -= 2
             else:
                 raise RequestError("Invalid vote type")
             comment.save()
-
+            profile.save()
             user_vote, created = UserCommentVotes.objects.get_or_create(
                 user__username=username,
                 comment=comment,
