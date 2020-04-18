@@ -23,7 +23,6 @@ from holidaily.settings import (
 from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
-from django.db.models import Sum
 import requests
 from PIL import Image
 from io import BytesIO
@@ -65,6 +64,7 @@ class UserProfile(models.Model):
     reported_comments = models.ManyToManyField(
         "Comment", related_name="reported_comments", blank=True, null=True
     )
+    confetti = models.IntegerField(default=0)
 
     @property
     def num_comments(self):
@@ -77,29 +77,6 @@ class UserProfile(models.Model):
     @property
     def approved_holidays(self):
         return Holiday.objects.filter(creator=self.user, active=True).count()
-
-    @property
-    def confetti(self):
-        user_profile = UserProfile.objects.get(user=self.user)
-        points = user_profile.rewards
-        comment_votes = Comment.objects.filter(user=self.user).aggregate(Sum("votes"))
-        if comment_votes["votes__sum"]:
-            comment_points = (
-                comment_votes["votes__sum"] if comment_votes["votes__sum"] > 0 else 0
-            )
-        else:
-            comment_points = 0
-        points += comment_points
-        return points
-
-
-# @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-# def create_auth_token(sender, instance=None, created=False, **kwargs):
-#     """
-#     Create API token for new users
-#     """
-#     if created:
-#         Token.objects.create(user=instance)
 
 
 class Holiday(models.Model):
