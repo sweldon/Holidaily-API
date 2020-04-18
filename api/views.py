@@ -136,7 +136,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         elif reward:
             # User earned confetti
             reward_amount = request.POST.get("reward", None)
-            profile.rewards += int(reward_amount)
+            profile.confetti += int(reward_amount)
             profile.save()
             results = {
                 "message": f"{reward_amount} confetti awarded to {username}",
