@@ -37,6 +37,7 @@ DOWNVOTE = "down"
 
 NEWS_NOTIFICATION = 1
 COMMENT_NOTIFICATION = 0
+HOLIDAY_NOTIFICATION = 2
 
 CLOUDFRONT_DOMAIN = "https://d2cwe0vw7pxea6.cloudfront.net"
 S3_BUCKET_IMAGES = "https://holiday-images.s3.amazonaws.com"
@@ -50,3 +51,6 @@ FALSY_STRS = ("no", "n", "false", "0", "False")
 REPLY_DEPTH = 20
 
 DEFAULT_SLACK_CHANNEL = "holidaily-updates"
+
+ANDROID = "android"
+IOS = "ios"

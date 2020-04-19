@@ -60,23 +60,13 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "active",
+        "platform",
         "device_id",
-        "rewards",
-        "profile_image",
+        "confetti",
         "premium",
-        "premium_id",
-        "premium_token",
-        "premium_state",
         "logged_out",
     )
-    search_fields = (
-        "user",
-        "device_id",
-        "profile_image",
-        "premium_id",
-        "premium_token",
-        "premium_state",
-    )
+    search_fields = ("user__username", "device_id", "platform")
 
 
 class CommentAdmin(admin.ModelAdmin):

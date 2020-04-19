@@ -12,15 +12,13 @@ from api.constants import (
     NEWS_NOTIFICATION,
     S3_BUCKET_IMAGES,
     S3_BUCKET_NAME,
+    HOLIDAY_NOTIFICATION,
 )
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
-    APPCENTER_API_KEY,
-    PUSH_ENDPOINT_ANDROID,
-    PUSH_ENDPOINT_IOS,
 )
-from holidaily.utils import normalize_time
+from holidaily.utils import normalize_time, send_push
 import humanize
 from django.utils import timezone
 import requests
@@ -39,10 +37,7 @@ VOTE_CHOICES = (
     (4, "up_from_down"),
     (5, "down_from_up"),
 )
-NOTIFICATION_TYPES = (
-    (0, "comment"),
-    (1, "news"),
-)
+NOTIFICATION_TYPES = ((0, "comment"), (1, "news"), (2, "holiday"))
 S3_CLIENT = boto3.resource("s3")
 CF_CLIENT = boto3.client("cloudfront")
 
@@ -65,6 +60,7 @@ class UserProfile(models.Model):
         "Comment", related_name="reported_comments", blank=True, null=True
     )
     confetti = models.IntegerField(default=0)
+    platform = models.CharField(max_length=50, default=None)
 
     @property
     def num_comments(self):
@@ -129,29 +125,32 @@ class Holiday(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        from_app = kwargs.pop("from_app", None)
+        if not from_app:
+            if self.image:
+                try:
+                    image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
+                    image_data = requests.get(self.image).content
+                    image_object = Image.open(BytesIO(image_data))
+                    image_object.thumbnail(image_size)
 
-        if self.image:
-            try:
-                image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
-                image_data = requests.get(self.image).content
-                image_object = Image.open(BytesIO(image_data))
-                image_object.thumbnail(image_size)
-
-                byte_arr = BytesIO()
-                image_object.save(byte_arr, format=self.image_format)
-                image_data = byte_arr.getvalue()
-                image_hash = hashlib.md5(image_data).hexdigest()
-                image_suffix = f"-{image_hash}.{self.image_format}"
-                if not self.image_name or not self.image_name.endswith(image_suffix):
-                    new_image_name = f"{self.name.strip().replace(' ', '-')}-{image_hash}.{self.image_format}"
-                    S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
-                        Key=new_image_name, Body=image_data
-                    )
-                    self.image_name = new_image_name
-                else:
-                    print(f"Image is the same with hash {image_hash}")
-            except Exception as e:  # noqa
-                print(f"Could not save image: {e}")
+                    byte_arr = BytesIO()
+                    image_object.save(byte_arr, format=self.image_format)
+                    image_data = byte_arr.getvalue()
+                    image_hash = hashlib.md5(image_data).hexdigest()
+                    image_suffix = f"-{image_hash}.{self.image_format}"
+                    if not self.image_name or not self.image_name.endswith(
+                        image_suffix
+                    ):
+                        new_image_name = f"{self.name.strip().replace(' ', '-')}-{image_hash}.{self.image_format}"
+                        S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                            Key=new_image_name, Body=image_data
+                        )
+                        self.image_name = new_image_name
+                    else:
+                        print(f"Image is the same with hash {image_hash}")
+                except Exception as e:  # noqa
+                    print(f"Could not save image: {e}")
         super(Holiday, self).save(*args, **kwargs)
 
 
@@ -207,16 +206,12 @@ class UserNotifications(models.Model):
 
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
-        if self.notification_type == NEWS_NOTIFICATION:
-            data = {
-                "notification_content": {
-                    "name": "Announcement",
-                    "title": self.title,
-                    "body": self.content,
-                    "custom_data": {"news": "true"},
-                },
-                "notification_target": None,
-            }
-            headers = {"X-API-Token": APPCENTER_API_KEY}
-            requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
-            requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
+        if self.notification_type in [NEWS_NOTIFICATION, HOLIDAY_NOTIFICATION]:
+            target = [self.user] if self.user else None
+            send_push(
+                title=self.title,
+                body=self.content,
+                notif_type=self.notification_type,
+                users=target,
+                notif_id=self.notification_id,
+            )
