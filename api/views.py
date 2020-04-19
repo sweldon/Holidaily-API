@@ -88,13 +88,20 @@ class UserList(APIView):
     def post(self, request):
         username = request.POST.get("username", None)
         device_id = request.POST.get("device_id", None)
+        platform = request.POST.get("platform", None)
         if username:
             user = User.objects.get(username=username)
             # Keep device id up to date
             profile = UserProfile.objects.filter(user=user).first()
-            if profile and device_id and device_id != profile.device_id:
-                profile.device_id = device_id
-                profile.save()
+            if profile:
+                update_fields = []
+                if device_id and device_id != profile.device_id:
+                    profile.device_id = device_id
+                    update_fields.append("device_id")
+                if platform and platform != profile.platform:
+                    profile.platform = platform
+                    update_fields.append("platform")
+                profile.save(update_fields=update_fields)
         else:
             raise RequestError("Please provide a username for POST requests")
         serializer = UserSerializer(user)
@@ -288,7 +295,7 @@ class HolidayDetail(APIView):
                 holiday.votes -= 1
             else:
                 raise RequestError("Invalid vote type")
-            holiday.save()
+            holiday.save(from_app=True)
             user_vote, created = UserHolidayVotes.objects.get_or_create(
                 user__username=username,
                 holiday=holiday,
