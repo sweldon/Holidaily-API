@@ -60,7 +60,7 @@ class UserProfile(models.Model):
         "Comment", related_name="reported_comments", blank=True, null=True
     )
     confetti = models.IntegerField(default=0)
-    platform = models.CharField(max_length=50, default=None)
+    platform = models.CharField(max_length=50, default=None, blank=True, null=True)
 
     @property
     def num_comments(self):
