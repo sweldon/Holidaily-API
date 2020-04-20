@@ -647,7 +647,8 @@ class UserNotificationsView(generics.GenericAPIView):
     def post(self, request):
         username = request.POST.get("username", None)
         notifications = UserNotifications.objects.filter(
-            Q(user__username=username) | Q(notification_type=NEWS_NOTIFICATION)
+            Q(user__username=username)
+            | (Q(notification_type=NEWS_NOTIFICATION) & Q(user__isnull=True))
         ).order_by("-id")[:20]
         serializer = UserNotificationsSerializer(notifications, many=True)
         results = {"results": serializer.data}
