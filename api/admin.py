@@ -61,12 +61,20 @@ class UserProfileAdmin(admin.ModelAdmin):
         "user",
         "active",
         "platform",
+        "version",
+        "last_launched",
         "device_id",
         "confetti",
         "premium",
         "logged_out",
     )
-    search_fields = ("user__username", "device_id", "platform")
+    search_fields = (
+        "user__username",
+        "device_id",
+        "platform",
+        "version",
+        "last_launched",
+    )
 
 
 class CommentAdmin(admin.ModelAdmin):

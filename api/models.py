@@ -61,6 +61,8 @@ class UserProfile(models.Model):
     )
     confetti = models.IntegerField(default=0)
     platform = models.CharField(max_length=50, default=None, blank=True, null=True)
+    version = models.CharField(max_length=50, default=None, blank=True, null=True)
+    last_launched = models.DateTimeField(blank=True, null=True)
 
     @property
     def num_comments(self):

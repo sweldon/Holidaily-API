@@ -89,18 +89,23 @@ class UserList(APIView):
         username = request.POST.get("username", None)
         device_id = request.POST.get("device_id", None)
         platform = request.POST.get("platform", None)
+        version = request.POST.get("version", None)
         if username:
             user = User.objects.get(username=username)
             # Keep device id up to date
             profile = UserProfile.objects.filter(user=user).first()
             if profile:
-                update_fields = []
+                update_fields = ["last_launched"]
                 if device_id and device_id != profile.device_id:
                     profile.device_id = device_id
                     update_fields.append("device_id")
                 if platform and platform != profile.platform:
                     profile.platform = platform
                     update_fields.append("platform")
+                if version and version != profile.version:
+                    profile.version = version
+                    update_fields.append("version")
+                profile.last_launched = timezone.now()
                 profile.save(update_fields=update_fields)
         else:
             raise RequestError("Please provide a username for POST requests")
