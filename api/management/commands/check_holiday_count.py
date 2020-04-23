@@ -13,12 +13,15 @@ class Command(BaseCommand):
         admins = list(
             User.objects.filter(is_staff=True).values_list("email", flat=True)
         )
-        if actives == 0:
-            mail_subject = "No Active Holidays Tomorrow"
+        if actives > 0:
+            mail_subject = (
+                f"{actives} active {'holidays' if actives > 1 else 'holiday'} tomorrow"
+            )
             message = f"""
-            Just a warning that there are no holidays set up for tomorrow.
+            There {"are" if actives > 1 else "is only"} <b>{actives}</b> {"holidays" if actives > 1 else "holiday"}
+             queued up for tomorrow.
             <a href="https://holidailyapp.com/admin/api/holiday/?q={tomorrow}">
-            Click here to set them up!
+            Click here to make changes!
             </a>
             """
             email = EmailMessage(mail_subject, message, to=admins)
