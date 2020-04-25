@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "accounts",
     "portal",
     "easyaudit",
+    "push_notifications",
 ]
 
 MIDDLEWARE = [
@@ -170,3 +171,12 @@ HOLIDAY_IMAGE_WIDTH = 338
 HOLIDAY_IMAGE_HEIGHT = 225
 COMMENT_PAGE_SIZE = 10
 ENABLE_NEW_USER_ALERT = True
+
+PUSH_NOTIFICATIONS_SETTINGS = {
+    "APNS_AUTH_KEY_PATH": os.path.join(BASE_DIR, os.environ["P8_FILE"]),
+    "APNS_AUTH_KEY_ID": os.environ["APNS_AUTH_KEY_ID"],
+    "APNS_TEAM_ID": os.environ["APNS_TEAM_ID"],
+    "APNS_TOPIC": "eventapp.com",
+    "UNIQUE_REG_ID": True,
+    "UPDATE_ON_DUPLICATE_REG_ID": True,
+}
