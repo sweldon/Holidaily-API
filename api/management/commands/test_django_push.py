@@ -15,7 +15,7 @@ class Command(BaseCommand):
         device_id = UserProfile.objects.get(user__username=username).device_id
         user = User.objects.get(username=username)
         device, created = APNSDevice.objects.get_or_create(
-            registration_id=device_id, user=user
+            registration_id=device_id, defaults={"user": user}
         )
         device.send_message(
             message={
