@@ -179,4 +179,5 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     "APNS_TOPIC": "eventapp.com",
     "UNIQUE_REG_ID": False,
     "UPDATE_ON_DUPLICATE_REG_ID": True,
+    "FCM_API_KEY": os.environ["FCM_API_KEY"],
 }

@@ -17,7 +17,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from holidaily.settings import ENABLE_NEW_USER_ALERT
-from holidaily.utils import send_slack
+from holidaily.utils import send_slack, sync_devices
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -25,6 +25,8 @@ class UserLoginView(generics.GenericAPIView):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
         device_id = request.data.get("device_id", None)
+        platform = request.data.get("platform", None)
+        version = request.data.get("version", None)
         user = authenticate(username=username, password=password)
 
         if not device_id:
@@ -39,16 +41,21 @@ class UserLoginView(generics.GenericAPIView):
             )[0]
             active = user_profile.active
             if active:
-
+                update_fields = ["logged_out"]
                 # Re-enable notifications
                 user_profile.logged_out = False
-                user_profile.save()
-
-                # Update device ID if necessary
-                current_device_id = user_profile.device_id
-                if device_id != current_device_id:
+                if device_id and device_id != user_profile.device_id:
                     user_profile.device_id = device_id
-                    user_profile.save()
+                    update_fields.append("device_id")
+                if platform and platform != user_profile.platform:
+                    user_profile.platform = platform
+                    update_fields.append("platform")
+                if version and version != user_profile.version:
+                    user_profile.version = version
+                    update_fields.append("version")
+                user_profile.save(update_fields=update_fields)
+                if device_id and platform:
+                    sync_devices(device_id, platform, user)
                 serializer = UserProfileSerializer(user_profile)
                 results = {
                     "results": serializer.data,
