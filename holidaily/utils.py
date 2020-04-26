@@ -1,3 +1,5 @@
+from push_notifications.models import APNSDevice, GCMDevice
+
 from api.constants import (
     DEFAULT_SLACK_CHANNEL,
     IOS,
@@ -75,3 +77,38 @@ def send_push(title, body, notif_type=None, notif_id=None, users=None):
     else:
         requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
         requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
+
+
+def sync_devices(registration_id, platform, user=None) -> None:
+    device_class = APNSDevice if platform == IOS else GCMDevice
+    # If no user, log device of anonymous user to be assigned later
+    if user is None:
+        device, created = device_class.objects.get_or_create(
+            registration_id=registration_id
+        )
+        if created:
+            print(f"Created new {platform} device for anonymous user {registration_id}")
+            if platform == ANDROID:
+                device.cloud_message_type = "FCM"
+                device.save()
+    else:
+        existing_device = device_class.objects.filter(user=user).first()
+        if existing_device:
+            if existing_device.registration_id != registration_id:
+                print(
+                    f"Updating {platform} device id for user {user.username} from "
+                    f"{existing_device.registration_id } to {registration_id}"
+                )
+                existing_device.registration_id = registration_id
+                existing_device.save()
+        else:
+            print(
+                f"Adding new {platform} device for user {user.username} {registration_id}"
+            )
+            new_device, _ = device_class.objects.get_or_create(
+                registration_id=registration_id
+            )
+            new_device.user = user
+            if platform == ANDROID:
+                new_device.cloud_message_type = "FCM"
+            new_device.save()
