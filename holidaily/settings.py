@@ -177,6 +177,6 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     "APNS_AUTH_KEY_ID": os.environ["APNS_AUTH_KEY_ID"],
     "APNS_TEAM_ID": os.environ["APNS_TEAM_ID"],
     "APNS_TOPIC": "eventapp.com",
-    "UNIQUE_REG_ID": True,
+    "UNIQUE_REG_ID": False,
     "UPDATE_ON_DUPLICATE_REG_ID": True,
 }
