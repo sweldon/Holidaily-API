@@ -117,7 +117,8 @@ class UserList(APIView):
                         )
                     elif platform == ANDROID:
                         device, created = GCMDevice.objects.get_or_create(
-                            registration_id=device_id, defaults={"user": user}
+                            registration_id=device_id,
+                            defaults={"user": user, "cloud_message_type": "FCM"},
                         )
         else:
             raise RequestError("Please provide a username for POST requests")
