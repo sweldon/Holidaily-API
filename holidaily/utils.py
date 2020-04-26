@@ -79,7 +79,9 @@ def send_push(title, body, notif_type=None, notif_id=None, users=None):
         requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
 
 
-def sync_devices(registration_id, platform, user=None) -> None:
+def sync_devices(registration_id, platform, user=None):
+    if registration_id == "none":
+        return
     device_class = APNSDevice if platform == IOS else GCMDevice
     # If no user, log device of anonymous user to be assigned later
     if user is None:
