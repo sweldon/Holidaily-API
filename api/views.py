@@ -110,7 +110,7 @@ class UserList(APIView):
                     update_fields.append("version")
                 profile.last_launched = timezone.now()
                 profile.save(update_fields=update_fields)
-                if "device_id" in update_fields and "platform" in update_fields:
+                if "device_id" in update_fields:
                     if platform == IOS:
                         device, created = APNSDevice.objects.get_or_create(
                             registration_id=device_id, defaults={"user": user}
