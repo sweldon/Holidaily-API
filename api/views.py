@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.forms import model_to_dict
+from push_notifications.models import APNSDevice, GCMDevice
 
 from holidaily.utils import send_slack
 from .models import (
@@ -43,6 +44,8 @@ from api.constants import (
     MAX_COMMENT_DEPTH,
     TRUTHY_STRS,
     REPLY_DEPTH,
+    IOS,
+    ANDROID,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -107,6 +110,15 @@ class UserList(APIView):
                     update_fields.append("version")
                 profile.last_launched = timezone.now()
                 profile.save(update_fields=update_fields)
+                if "device_id" in update_fields and "platform" in update_fields:
+                    if platform == IOS:
+                        device, created = APNSDevice.objects.get_or_create(
+                            registration_id=device_id, defaults={"user": user}
+                        )
+                    elif platform == ANDROID:
+                        device, created = GCMDevice.objects.get_or_create(
+                            registration_id=device_id, defaults={"user": user}
+                        )
         else:
             raise RequestError("Please provide a username for POST requests")
         serializer = UserSerializer(user)
