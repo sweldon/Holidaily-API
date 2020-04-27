@@ -80,7 +80,7 @@ def send_push(title, body, notif_type=None, notif_id=None, users=None):
 
 
 def sync_devices(registration_id, platform, user=None):
-    if registration_id == "none":
+    if registration_id == "none":  # Firebase default sometimes on first launch
         return
     device_class = APNSDevice if platform == IOS else GCMDevice
     # If no user, log device of anonymous user to be assigned later
