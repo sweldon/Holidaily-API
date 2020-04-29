@@ -1,9 +1,12 @@
 from django.core.management.base import BaseCommand
-from api.models import Holiday
+from push_notifications.models import GCMDevice, APNSDevice
+
+from api.models import Holiday, UserProfile
 from django.utils import timezone
 import requests
 import random
 from holidaily.settings import APPCENTER_API_KEY
+from django.db.models.functions import Length
 
 
 class Command(BaseCommand):
@@ -20,6 +23,13 @@ class Command(BaseCommand):
         push = random_day.push if random_day.push else "Check out today's holidays!"
         day_name = random_day.name
         id = random_day.id
+
+        # Old AppCenter Logic
+        old_devices = list(
+            UserProfile.objects.annotate(text_len=Length("device_id"))
+            .filter(text_len=36)
+            .values_list("device_id", flat=True)
+        )
         android_url = (
             "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/push/"
             "notifications"
@@ -32,8 +42,25 @@ class Command(BaseCommand):
                 "body": push,
                 "custom_data": {"holiday_id": id, "holiday_name": day_name},
             },
-            "notification_target": None,
+            "notification_target": {"type": "devices_target", "devices": old_devices},
         }
         headers = {"X-API-Token": APPCENTER_API_KEY}
         requests.post(android_url, headers=headers, json=data)
         requests.post(ios_url, headers=headers, json=data)
+
+        # New FCM/APNs logic
+        # Now send to new devices, only if the user has gotten a new token
+        androids = GCMDevice.objects.all().exclude(registration_id__in=old_devices)
+        iphones = APNSDevice.objects.all().exclude(registration_id__in=old_devices)
+
+        iphones.send_message(
+            message={"title": day_name, "body": push},
+            extra={"holiday_id": id, "holiday_name": day_name, "push_type": "holiday"},
+            badge=1,
+        )
+        androids.send_message(
+            push,
+            title=day_name,
+            badge=1,
+            extra={"holiday_id": id, "holiday_name": day_name, "push_type": "holiday"},
+        )
