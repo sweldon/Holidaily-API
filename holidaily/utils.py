@@ -4,16 +4,8 @@ from api.constants import (
     DEFAULT_SLACK_CHANNEL,
     IOS,
     ANDROID,
-    NEWS_NOTIFICATION,
-    HOLIDAY_NOTIFICATION,
 )
-from holidaily.settings import (
-    SLACK_CLIENT,
-    PUSH_ENDPOINT_IOS,
-    PUSH_ENDPOINT_ANDROID,
-    APPCENTER_API_KEY,
-)
-import requests
+from holidaily.settings import SLACK_CLIENT
 
 
 def normalize_time(time_ago: str, time_type: str) -> str:
@@ -40,46 +32,39 @@ def send_slack(message, channel=DEFAULT_SLACK_CHANNEL):
     SLACK_CLIENT.chat_postMessage(channel=f"#{channel}", text=message)
 
 
-def send_push(title, body, notif_type=None, notif_id=None, users=None):
-    from api.models import UserProfile
+def send_push_to_user(user, title, body, notif_obj=None):
+    from api.models import UserProfile, Comment
 
-    custom_data = {}
-    target_data = None
-    profiles = UserProfile.objects.filter(user__in=users) if users else None
-    targets = [u.device_id for u in profiles] if users else None
-    if targets:
-        target_data = {
-            "type": "devices_target",
-            "devices": targets,
-        }
-    if notif_type == NEWS_NOTIFICATION:
-        custom_data["news"] = "true"
-    elif notif_type == HOLIDAY_NOTIFICATION:
-        custom_data["holiday_id"] = notif_id
-    data = {
-        "notification_content": {
-            "name": "Holidaily Notification",
-            "title": title,
-            "body": body,
-            "custom_data": custom_data,
-        },
-        "notification_target": target_data,
-    }
-    headers = {"X-API-Token": APPCENTER_API_KEY}
-
-    if profiles and profiles.count() == 1:
-        profile = profiles.first()
-        user_platform = profile.platform
-        if user_platform == IOS:
-            requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
-        elif user_platform == ANDROID:
-            requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
+    # TODO determine badge count by UserNotifications where read=False
+    # TODO ensure logged_out=False on profile before sending
+    extra_data = {}
+    profile = UserProfile.objects.filter(user=user).first()
+    if not profile:
+        return
+    platform = profile.platform
+    if isinstance(notif_obj, Comment):
+        # notif_obj is a Comment
+        extra_data["push_type"] = "comment"
+        extra_data["holiday_id"] = notif_obj.holiday.id
+        extra_data["comment_id"] = notif_obj.id
+        extra_data["content"] = notif_obj.content
+        extra_data["comment_user"] = notif_obj.user.username
+        extra_data["holiday_name"] = notif_obj.holiday.name
     else:
-        requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
-        requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
+        # TODO implement other notification types when they exist
+        return
+    device_class = APNSDevice if platform == IOS else GCMDevice
+    device = device_class.objects.filter(user=user).last()
+    if device:
+        if platform == IOS:
+            device.send_message(
+                message={"title": title, "body": body}, extra=extra_data, badge=1,
+            )
+        else:
+            device.send_message(body, title=title, badge=1, extra=extra_data)
 
 
-def sync_devices(registration_id, platform, user=None) -> None:
+def sync_devices(registration_id, platform, user=None):
     device_class = APNSDevice if platform == IOS else GCMDevice
     # If no user, log device of anonymous user to be assigned later
     if user is None:
@@ -92,7 +77,7 @@ def sync_devices(registration_id, platform, user=None) -> None:
                 device.cloud_message_type = "FCM"
                 device.save()
     else:
-        existing_device = device_class.objects.filter(user=user).first()
+        existing_device = device_class.objects.filter(user=user).last()
         if existing_device:
             if existing_device.registration_id != registration_id:
                 print(
@@ -102,13 +87,20 @@ def sync_devices(registration_id, platform, user=None) -> None:
                 existing_device.registration_id = registration_id
                 existing_device.save()
         else:
-            print(
-                f"Adding new {platform} device for user {user.username} {registration_id}"
-            )
-            new_device, _ = device_class.objects.get_or_create(
-                registration_id=registration_id
-            )
-            new_device.user = user
-            if platform == ANDROID:
-                new_device.cloud_message_type = "FCM"
-            new_device.save()
+            unassigned_device = device_class.objects.filter(
+                registration_id=registration_id, user__isnull=True
+            ).last()
+            if unassigned_device:
+                print("assigning unassigned device")
+                # Replace unassigned device with logged in user
+                unassigned_device.user = user
+                unassigned_device.save()
+            else:
+                print("creating new device")
+                new_device, _ = device_class.objects.get_or_create(
+                    registration_id=registration_id
+                )
+                new_device.user = user
+                if platform == ANDROID:
+                    new_device.cloud_message_type = "FCM"
+                new_device.save()
