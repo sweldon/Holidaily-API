@@ -9,16 +9,14 @@ from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
 from api.constants import (
-    NEWS_NOTIFICATION,
     S3_BUCKET_IMAGES,
     S3_BUCKET_NAME,
-    HOLIDAY_NOTIFICATION,
 )
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
 )
-from holidaily.utils import normalize_time, send_push
+from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
 import requests
@@ -208,12 +206,13 @@ class UserNotifications(models.Model):
 
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
-        if self.notification_type in [NEWS_NOTIFICATION, HOLIDAY_NOTIFICATION]:
-            target = [self.user] if self.user else None
-            send_push(
-                title=self.title,
-                body=self.content,
-                notif_type=self.notification_type,
-                users=target,
-                notif_id=self.notification_id,
-            )
+        # TODO update this to new FCM/APNs format
+        # if self.notification_type in [NEWS_NOTIFICATION, HOLIDAY_NOTIFICATION]:
+        #     target = [self.user] if self.user else None
+        #     send_push(
+        #         title=self.title,
+        #         body=self.content,
+        #         notif_type=self.notification_type,
+        #         users=target,
+        #         notif_id=self.notification_id,
+        #     )
