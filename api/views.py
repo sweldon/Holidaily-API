@@ -43,6 +43,10 @@ from api.constants import (
     MAX_COMMENT_DEPTH,
     TRUTHY_STRS,
     REPLY_DEPTH,
+    ANDROID_VERSION,
+    ANDROID,
+    IOS_VERSION,
+    IOS,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -124,7 +128,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         token = request.POST.get("token", None)
         reward = request.POST.get("reward", None)
         logout = request.POST.get("logout", None)
-
+        check_update = request.POST.get("check_update", None)
         profile = UserProfile.objects.filter(user__username=username).first()
         if logout is not None:
             profile.logged_out = bool(logout)
@@ -155,6 +159,16 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 "message": f"{reward_amount} confetti awarded to {username}",
                 "status": HTTP_200_OK,
             }
+            return Response(results)
+        elif check_update:
+            version = request.POST.get("version", None)
+            platform = request.POST.get("platform", None)
+            requires_update = False
+            if platform == ANDROID and version != ANDROID_VERSION:
+                requires_update = True
+            elif platform == IOS and version != IOS_VERSION:
+                requires_update = True
+            results = {"needs_update": requires_update, "status": HTTP_200_OK}
             return Response(results)
         else:
             serializer = UserProfileSerializer(profile)
