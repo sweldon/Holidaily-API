@@ -35,10 +35,9 @@ def send_slack(message, channel=DEFAULT_SLACK_CHANNEL):
 def send_push_to_user(user, title, body, notif_obj=None):
     from api.models import UserProfile, Comment
 
-    # TODO determine badge count by UserNotifications where read=False
-    # TODO ensure logged_out=False on profile before sending
+    # TODO determine badge count on IOS by UserNotifications where read=False
     extra_data = {}
-    profile = UserProfile.objects.filter(user=user).first()
+    profile = UserProfile.objects.filter(user=user, logged_out=False).first()
     if not profile:
         return
     platform = profile.platform
