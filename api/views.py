@@ -514,6 +514,8 @@ class CommentList(generics.GenericAPIView):
                 mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
                 notifications = []
                 for user_mention in mentions:
+                    if user_mention == username:
+                        continue
                     # Get user profiles, exclude self if user mentions themself for some reason
                     user_to_notify = User.objects.filter(username=user_mention).first()
                     if user_to_notify:
