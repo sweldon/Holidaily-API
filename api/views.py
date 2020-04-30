@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.forms import model_to_dict
 
-from holidaily.utils import send_slack, sync_devices
+from holidaily.utils import send_slack, sync_devices, send_push_to_user
 from .models import (
     Holiday,
     UserHolidayVotes,
@@ -46,13 +46,7 @@ from api.constants import (
 )
 from api.exceptions import RequestError, DeniedError
 import re
-from holidaily.settings import (
-    PUSH_ENDPOINT_ANDROID,
-    PUSH_ENDPOINT_IOS,
-    APPCENTER_API_KEY,
-    COMMENT_PAGE_SIZE,
-)
-import requests
+from holidaily.settings import COMMENT_PAGE_SIZE
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -95,7 +89,7 @@ class UserList(APIView):
             # Keep device id up to date
             profile = UserProfile.objects.filter(user=user).first()
             if profile:
-                update_fields = ["last_launched"]
+                update_fields = ["last_launched", "logged_out"]
                 if device_id and device_id != profile.device_id:
                     profile.device_id = device_id
                     update_fields.append("device_id")
@@ -106,6 +100,7 @@ class UserList(APIView):
                     profile.version = version
                     update_fields.append("version")
                 profile.last_launched = timezone.now()
+                profile.logged_out = False
                 profile.save(update_fields=update_fields)
                 if device_id and platform:
                     sync_devices(device_id, platform, user)
@@ -517,57 +512,26 @@ class CommentList(generics.GenericAPIView):
                 )
                 new_comment.save()
                 mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
-                devices = []
                 notifications = []
                 for user_mention in mentions:
                     # Get user profiles, exclude self if user mentions themself for some reason
-                    user_mention_profile = (
-                        UserProfile.objects.filter(
-                            user__username=user_mention, logged_out=False
+                    user_to_notify = User.objects.filter(username=user_mention).first()
+                    if user_to_notify:
+                        send_push_to_user(
+                            user_to_notify,
+                            f"{username} mentioned you!",
+                            f"{content[:50]}{'...' if len(content) > 50 else ''}",
+                            new_comment,
                         )
-                        .exclude(user__username=user.username)
-                        .first()
-                    )
-                    if user_mention_profile:
-                        user_mention_device = user_mention_profile.device_id
-                        if user_mention_device:
-                            devices.append(user_mention_device)
-                            n = UserNotifications(
-                                notification_id=new_comment.pk,
-                                notification_type=COMMENT_NOTIFICATION,  # Comment
-                                user=user_mention_profile.user,
-                                content=f"{username} mentioned you in a comment on {holiday.name}",
-                                title="You were mentioned!",
-                            )
-                            notifications.append(n)
+                        n = UserNotifications(
+                            notification_id=new_comment.pk,
+                            notification_type=COMMENT_NOTIFICATION,
+                            user=user_to_notify,
+                            content=content,
+                            title=f"{username} on {holiday.name}",
+                        )
+                        notifications.append(n)
                 UserNotifications.objects.bulk_create(notifications)
-                new_comment_time_since = new_comment.timestamp.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
-                comment_content = content.encode("ascii", "ignore").decode("ascii")
-                holiday_name = holiday.name.encode("ascii", "ignore").decode("ascii")
-                data = {
-                    "notification_content": {
-                        "name": "Comment Mention",
-                        "title": "{} mentioned you in a comment".format(username),
-                        "body": str(comment_content),
-                        "custom_data": {
-                            "comment_id": int(new_comment.id),
-                            "holiday_id": holiday.pk,
-                            "content": str(comment_content),
-                            "comment_user": str(username),
-                            "time_since": new_comment_time_since,
-                            "holiday_name": holiday_name,
-                        },
-                    },
-                    "notification_target": {
-                        "type": "devices_target",
-                        "devices": devices,
-                    },
-                }
-                headers = {"X-API-Token": APPCENTER_API_KEY}
-                requests.post(PUSH_ENDPOINT_ANDROID, headers=headers, json=data)
-                requests.post(PUSH_ENDPOINT_IOS, headers=headers, json=data)
                 results = {"status": HTTP_200_OK, "message": "OK"}
                 return Response(results)
             else:
