@@ -533,12 +533,17 @@ class CommentList(generics.GenericAPIView):
                     # Get user profiles, exclude self if user mentions themself for some reason
                     user_to_notify = User.objects.filter(username=user_mention).first()
                     if user_to_notify:
-                        send_push_to_user(
-                            user_to_notify,
-                            f"{username} mentioned you!",
-                            f"{content[:50]}{'...' if len(content) > 50 else ''}",
-                            new_comment,
-                        )
+                        try:
+                            send_push_to_user(
+                                user_to_notify,
+                                f"{username} mentioned you!",
+                                f"{content[:50]}{'...' if len(content) > 50 else ''}",
+                                new_comment,
+                            )
+                        except:  # noqa
+                            print(
+                                f"Error sending push, bad device token for {user_to_notify}"
+                            )
                         n = UserNotifications(
                             notification_id=new_comment.pk,
                             notification_type=COMMENT_NOTIFICATION,
