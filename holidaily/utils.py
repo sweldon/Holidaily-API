@@ -67,12 +67,13 @@ def sync_devices(registration_id, platform, user=None):
     device_class = APNSDevice if platform == IOS else GCMDevice
     # If no user, log device of anonymous user to be assigned later
     if user is None:
-        if platform == ANDROID:
-            device_class.objects.create(
-                registration_id=registration_id, cloud_message_type="FCM"
-            )
-        else:
-            device_class.objects.create(registration_id=registration_id)
+        if not device_class.objects.filter(registration_id=registration_id):
+            if platform == ANDROID:
+                device_class.objects.create(
+                    registration_id=registration_id, cloud_message_type="FCM"
+                )
+            else:
+                device_class.objects.create(registration_id=registration_id)
     else:
         existing_device = device_class.objects.filter(user=user).last()
         if existing_device:
