@@ -33,7 +33,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return obj.user.username
 
     def get_profile_image(self, obj):
-        if obj.profile_image:
+        requesting_user = self.context.get("requesting_user", None)
+        # Don't censor user's own avatar
+        if not obj.profile_image:
+            return None
+        elif requesting_user and requesting_user == obj.user.username:
+            return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
+        elif obj.avatar_approved:
             return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
         else:
             return None

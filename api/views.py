@@ -80,6 +80,7 @@ class UserList(APIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    # TODO remove this get when all users on or above 1.2
     def get(self, request):
         user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[:50]
         serializer = UserProfileSerializer(user_list, many=True)
@@ -91,6 +92,7 @@ class UserList(APIView):
         device_id = request.POST.get("device_id", None)
         platform = request.POST.get("platform", None)
         version = request.POST.get("version", None)
+        requesting_user = request.POST.get("requesting_user", None)
         if username:
             user = User.objects.get(username=username)
             # Keep device id up to date
@@ -115,6 +117,15 @@ class UserList(APIView):
             sync_devices(device_id, platform)
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
+        elif requesting_user:
+            user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[
+                :50
+            ]
+            serializer = UserProfileSerializer(
+                user_list, many=True, context={"requesting_user": requesting_user}
+            )
+            results = {"results": serializer.data}
+            return Response(results)
         else:
             raise RequestError("Please provide a username for POST requests")
         serializer = UserSerializer(user)
@@ -128,6 +139,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def post(self, request):
         username = request.POST.get("username", None)
+        requesting_user = request.POST.get("requesting_user", None)
         token = request.POST.get("token", None)
         reward = request.POST.get("reward", None)
         logout = request.POST.get("logout", None)
@@ -188,6 +200,12 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 f"[*PROFILE PICTURE*] _{username}_ has uploaded a new profile picture."
                 f" Needs approval: https://holidailyapp.com/admin/api/userprofile/{profile.id}/"
             )
+            return Response(results)
+        elif requesting_user:
+            serializer = UserProfileSerializer(
+                profile, context={"requesting_user": requesting_user}
+            )
+            results = {"results": serializer.data}
             return Response(results)
         else:
             serializer = UserProfileSerializer(profile)
