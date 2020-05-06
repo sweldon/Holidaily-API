@@ -80,6 +80,13 @@ class UserList(APIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    # TODO remove this get when all users on or above 1.2
+    def get(self, request):
+        user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[:50]
+        serializer = UserProfileSerializer(user_list, many=True)
+        results = {"results": serializer.data}
+        return Response(results)
+
     def post(self, request):
         username = request.POST.get("username", None)
         device_id = request.POST.get("device_id", None)
