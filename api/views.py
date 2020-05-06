@@ -259,7 +259,7 @@ class HolidayList(generics.GenericAPIView):
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
-            ).order_by("date")
+            ).order_by("-date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
