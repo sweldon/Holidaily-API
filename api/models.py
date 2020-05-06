@@ -61,6 +61,38 @@ class UserProfile(models.Model):
     platform = models.CharField(max_length=50, default=None, blank=True, null=True)
     version = models.CharField(max_length=50, default=None, blank=True, null=True)
     last_launched = models.DateTimeField(blank=True, null=True)
+    avatar_approved = models.BooleanField(default=False)
+
+    def avatar_preview(self):
+        return (
+            mark_safe(
+                '<img src="%s" width="%s" height="%s" />'
+                % (
+                    f"{S3_BUCKET_IMAGES}/{self.profile_image}",
+                    HOLIDAY_IMAGE_WIDTH / 4,
+                    HOLIDAY_IMAGE_HEIGHT / 4,
+                )
+            )
+            if self.profile_image
+            else None
+        )
+
+    def avatar_full(self):
+        return (
+            mark_safe(
+                '<img src="%s" width="%s" height="%s" />'
+                % (
+                    f"{S3_BUCKET_IMAGES}/{self.profile_image}",
+                    HOLIDAY_IMAGE_WIDTH,
+                    HOLIDAY_IMAGE_HEIGHT,
+                )
+            )
+            if self.profile_image
+            else None
+        )
+
+    avatar_preview.short_description = "Avatar"
+    avatar_full.short_description = "Avatar"
 
     @property
     def num_comments(self):

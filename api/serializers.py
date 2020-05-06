@@ -26,9 +26,24 @@ import humanize
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
     premium = serializers.BooleanField()
+    profile_image = serializers.SerializerMethodField()
+    last_online = serializers.SerializerMethodField()
 
     def get_username(self, obj):
         return obj.user.username
+
+    def get_profile_image(self, obj):
+        if obj.profile_image:
+            return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
+        else:
+            return None
+
+    def get_last_online(self, obj):
+        if obj.last_launched:
+            time_ago = humanize.naturaltime(timezone.now() - obj.last_launched)
+            return normalize_time(time_ago, "precise")
+        else:
+            return "a while ago"
 
     class Meta:
         model = UserProfile
@@ -39,6 +54,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "num_comments",
             "username",
             "premium",
+            "profile_image",
+            "last_online",
         )
 
 
@@ -46,6 +63,10 @@ class UserSerializer(serializers.ModelSerializer):
     is_premium = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
     confetti = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
+    approved_holidays = serializers.SerializerMethodField()
+    last_online = serializers.SerializerMethodField()
+    num_comments = serializers.SerializerMethodField()
 
     def get_is_premium(self, obj):
         return UserProfile.objects.get(user=obj).premium
@@ -56,9 +77,41 @@ class UserSerializer(serializers.ModelSerializer):
     def get_confetti(self, obj):
         return UserProfile.objects.get(user=obj).confetti
 
+    def get_approved_holidays(self, obj):
+        return UserProfile.objects.get(user=obj).approved_holidays
+
+    def get_num_comments(self, obj):
+        return UserProfile.objects.get(user=obj).num_comments
+
+    def get_last_online(self, obj):
+        profile = UserProfile.objects.get(user=obj)
+        if profile.last_launched:
+            time_ago = humanize.naturaltime(timezone.now() - profile.last_launched)
+            return normalize_time(time_ago, "precise")
+        else:
+            return "a while ago"
+
+    def get_profile_image(self, obj):
+        profile = UserProfile.objects.get(user=obj)
+        if profile.profile_image:
+            return f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
+        else:
+            return None
+
     class Meta:
         model = User
-        fields = ("id", "username", "is_premium", "is_active", "confetti")
+        fields = (
+            "id",
+            "username",
+            "is_premium",
+            "is_active",
+            "confetti",
+            "profile_image",
+            "approved_holidays",
+            "last_online",
+            "num_comments",
+            "email",
+        )
 
 
 class CommentSerializer(serializers.ModelSerializer):

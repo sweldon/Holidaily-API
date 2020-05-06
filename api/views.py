@@ -9,6 +9,7 @@ from .models import (
     UserNotifications,
     UserCommentVotes,
     UserProfile,
+    S3_CLIENT,
 )
 from .serializers import (
     UserSerializer,
@@ -47,6 +48,8 @@ from api.constants import (
     ANDROID,
     IOS_VERSION,
     IOS,
+    S3_BUCKET_NAME,
+    CLOUDFRONT_DOMAIN,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -129,6 +132,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         reward = request.POST.get("reward", None)
         logout = request.POST.get("logout", None)
         check_update = request.POST.get("check_update", None)
+        avatar = request.FILES.get("file", None)
         profile = UserProfile.objects.filter(user__username=username).first()
         if logout is not None:
             profile.logged_out = bool(logout)
@@ -170,6 +174,20 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 requires_update = True
             results = {"needs_update": requires_update, "status": HTTP_200_OK}
             return Response(results)
+        elif avatar:
+            file_name = f"{username}_{avatar}"
+            S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=avatar)
+            profile.profile_image = file_name
+            profile.save()
+            results = {
+                "avatar": f"{CLOUDFRONT_DOMAIN}/{file_name}",
+                "status": HTTP_200_OK,
+            }
+            send_slack(
+                f"[*PROFILE PICTURE*] _{username}_ has uploaded a new profile picture."
+                f" Needs approval: https://holidailyapp.com/admin/api/userprofile/{profile.id}/"
+            )
+            return Response(results)
         else:
             serializer = UserProfileSerializer(profile)
             results = {"results": serializer.data}
@@ -208,7 +226,7 @@ class HolidayList(generics.GenericAPIView):
 
         username = request.POST.get("username", None)
         search = request.POST.get("search", None)
-
+        holidays_by = request.POST.get("holidays_by", None)
         if search:
             is_date = False
             try:
@@ -232,12 +250,16 @@ class HolidayList(generics.GenericAPIView):
                     Q(active=True) | (Q(active=False) & Q(creator__isnull=True)),
                 )
 
+        elif holidays_by:
+            holidays = Holiday.objects.filter(
+                creator__username=holidays_by, active=True
+            ).order_by("-votes")
         else:
             # Most recent holidays
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
-            ).order_by("-date")
+            ).order_by("date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -456,7 +478,7 @@ class CommentList(generics.GenericAPIView):
         content = request.POST.get("content", None)
         holiday = request.POST.get("holiday", None)
         delete = request.POST.get("delete", None)
-
+        activity = request.POST.get("activity", None)
         if delete:
             # Mobile, confirm mobile user requesting delete is the author
             device_id = request.POST.get("device_id", None)
@@ -595,6 +617,16 @@ class CommentList(generics.GenericAPIView):
                 for c in sub_list:
                     # Replies
                     c_dict = model_to_dict(c)
+                    avatar = None
+                    comment_profile = UserProfile.objects.filter(user=c.user).first()
+                    if comment_profile and comment_profile.profile_image:
+                        if (
+                            comment_profile.user.username == username
+                            or comment_profile.avatar_approved
+                        ):
+                            avatar = (
+                                f"{CLOUDFRONT_DOMAIN}/{comment_profile.profile_image}"
+                            )
                     if not c.parent:
                         c_dict["depth"] = depth
                     else:
@@ -609,6 +641,7 @@ class CommentList(generics.GenericAPIView):
                         c_dict["depth"] = depth
                     c_dict["time_since"] = c.time_since
                     c_dict["user"] = c.user.username
+                    c_dict["avatar"] = avatar
                     c_dict["vote_status"] = self.get_vote_status(username, c)
 
                     c_dict["blocked"] = False
@@ -622,6 +655,14 @@ class CommentList(generics.GenericAPIView):
                 results.append(serialized_sublist)
             results = {"results": results}
             return Response(results)
+        elif activity:
+            comments = Comment.objects.filter(
+                user__username=activity, deleted=False
+            ).order_by("-id")[:50]
+            serializer = CommentSerializer(comments, many=True)
+            results = {"results": serializer.data}
+            return Response(results)
+
         else:
             raise RequestError("Please provide a holiday for comments")
 
