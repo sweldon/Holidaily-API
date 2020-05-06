@@ -178,6 +178,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             file_name = f"{username}_{avatar}"
             S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=avatar)
             profile.profile_image = file_name
+            profile.avatar_approved = False
             profile.save()
             results = {
                 "avatar": f"{CLOUDFRONT_DOMAIN}/{file_name}",
