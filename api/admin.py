@@ -67,6 +67,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "confetti",
         "premium",
         "logged_out",
+        "avatar_preview",
     )
     search_fields = (
         "user__username",
@@ -75,6 +76,20 @@ class UserProfileAdmin(admin.ModelAdmin):
         "version",
         "last_launched",
     )
+    fields = (
+        "user",
+        "active",
+        "platform",
+        "version",
+        "last_launched",
+        "device_id",
+        "confetti",
+        "premium",
+        "logged_out",
+        "avatar_full",
+        "avatar_approved",
+    )
+    readonly_fields = ("avatar_full",)
 
 
 class CommentAdmin(admin.ModelAdmin):
@@ -87,7 +102,7 @@ class CommentAdmin(admin.ModelAdmin):
         "reports",
         "parent",
     )
-    search_fields = ("content", "holiday", "user")
+    search_fields = ("content", "holiday__name", "user__username")
 
 
 class HolidayVotesAdmin(admin.ModelAdmin):
