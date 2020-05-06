@@ -239,6 +239,7 @@ class UserNotifications(models.Model):
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
         # TODO update this to new FCM/APNs format
+        # send_push_to_all_users or send_push_to_user(self.user)
         # if self.notification_type in [NEWS_NOTIFICATION, HOLIDAY_NOTIFICATION]:
         #     target = [self.user] if self.user else None
         #     send_push(

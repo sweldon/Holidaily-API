@@ -32,6 +32,9 @@ def send_slack(message, channel=DEFAULT_SLACK_CHANNEL):
     SLACK_CLIENT.chat_postMessage(channel=f"#{channel}", text=message)
 
 
+# TODO implement send_push_to_all_users(platform=android,ios,none/both)
+
+
 def send_push_to_user(user, title, body, notif_obj=None):
     from api.models import UserProfile, Comment
 

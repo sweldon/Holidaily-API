@@ -56,7 +56,9 @@ class UserLoginView(generics.GenericAPIView):
                 user_profile.save(update_fields=update_fields)
                 if device_id and platform:
                     sync_devices(device_id, platform, user)
-                serializer = UserProfileSerializer(user_profile)
+                serializer = UserProfileSerializer(
+                    user_profile, context={"requesting_user": username}
+                )
                 results = {
                     "results": serializer.data,
                     "status": rest_status.HTTP_200_OK,
