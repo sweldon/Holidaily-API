@@ -54,8 +54,6 @@ from api.constants import (
 from api.exceptions import RequestError, DeniedError
 import re
 from holidaily.settings import COMMENT_PAGE_SIZE
-from PIL import Image
-from io import BytesIO
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -190,15 +188,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             return Response(results)
         elif avatar:
             file_name = f"{username}_{avatar}"
-            image = Image.open(avatar)
-            data = list(image.getdata())
-            image_without_exif = Image.new(image.mode, image.size)
-            image_without_exif.putdata(data)
-            image_bytes = BytesIO()
-            # TODO parse image extension
-            image_without_exif.save(image_bytes, format="JPEG")
-            image_data = image_bytes.getvalue()
-            S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=image_data)
+            S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=avatar)
             profile.profile_image = file_name
             profile.avatar_approved = False
             profile.save()
