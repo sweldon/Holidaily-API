@@ -108,14 +108,9 @@ class UserList(APIView):
                 if version and version != profile.version:
                     profile.version = version
                     update_fields.append("version")
-
-                # Only done onStart, don't do again for syncUser
-                if version and platform:
-                    profile.last_launched = timezone.now()
-                    profile.logged_out = False
-
+                profile.last_launched = timezone.now()
+                profile.logged_out = False
                 profile.save(update_fields=update_fields)
-                # Unlogged user, get their device for pushes
                 if device_id and platform:
                     sync_devices(device_id, platform, user)
         elif device_id and platform:
