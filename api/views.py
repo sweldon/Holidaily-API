@@ -93,6 +93,7 @@ class UserList(APIView):
         platform = request.POST.get("platform", None)
         version = request.POST.get("version", None)
         requesting_user = request.POST.get("requesting_user", None)
+        device_update = request.POST.get("device_update", None)
         if username:
             user = User.objects.get(username=username)
             # Keep device id up to date
@@ -113,6 +114,11 @@ class UserList(APIView):
                 profile.save(update_fields=update_fields)
                 if device_id and platform:
                     sync_devices(device_id, platform, user)
+
+            # New system
+            if device_update:
+                sync_devices(device_update, platform, user)
+
         elif device_id and platform:
             sync_devices(device_id, platform)
             results = {"status": HTTP_200_OK, "message": "OK"}
