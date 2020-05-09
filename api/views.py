@@ -117,6 +117,9 @@ class UserList(APIView):
 
             # New system
             if device_update:
+                if profile and device_update != profile.device_id:
+                    profile.device_id = device_update
+                    profile.save()
                 sync_devices(device_update, platform, user)
 
         elif device_id and platform:
