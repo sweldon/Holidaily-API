@@ -181,3 +181,5 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     "UPDATE_ON_DUPLICATE_REG_ID": True,
     "FCM_API_KEY": os.environ["FCM_API_KEY"],
 }
+
+UPDATE_ALERT = os.environ.get("UPDATE_ALERT", True)
