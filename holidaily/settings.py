@@ -182,4 +182,4 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     "FCM_API_KEY": os.environ["FCM_API_KEY"],
 }
 
-UPDATE_ALERT = os.environ.get("UPDATE_ALERT", True)
+UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
