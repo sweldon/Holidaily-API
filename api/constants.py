@@ -56,4 +56,4 @@ ANDROID = "android"
 IOS = "ios"
 
 ANDROID_VERSION = "1.2.5"
-IOS_VERSION = "1.1.4"
+IOS_VERSION = "1.2.2"
