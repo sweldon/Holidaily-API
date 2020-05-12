@@ -53,7 +53,7 @@ from api.constants import (
 )
 from api.exceptions import RequestError, DeniedError
 import re
-from holidaily.settings import COMMENT_PAGE_SIZE
+from holidaily.settings import COMMENT_PAGE_SIZE, UPDATE_ALERT
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -189,10 +189,11 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             version = request.POST.get("version", None)
             platform = request.POST.get("platform", None)
             requires_update = False
-            if platform == ANDROID and version != ANDROID_VERSION:
-                requires_update = True
-            elif platform == IOS and version != IOS_VERSION:
-                requires_update = True
+            if UPDATE_ALERT:
+                if platform == ANDROID and version != ANDROID_VERSION:
+                    requires_update = True
+                elif platform == IOS and version != IOS_VERSION:
+                    requires_update = True
             results = {"needs_update": requires_update, "status": HTTP_200_OK}
             return Response(results)
         elif avatar:
