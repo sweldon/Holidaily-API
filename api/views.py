@@ -172,6 +172,10 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             profile.premium_state = state
             profile.premium = True
             profile.save()
+            send_slack(
+                f":moneybag: PREMIUM HYPE :moneybag: _{username}_ bought premium!",
+                channel="hype",
+            )
             results = {"message": "User was made premium!", "status": HTTP_200_OK}
             return Response(results)
 
