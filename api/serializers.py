@@ -37,8 +37,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # Don't censor user's own avatar
         if not obj.profile_image:
             return None
-        elif requesting_user and requesting_user == obj.user.username:
-            return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
+        elif requesting_user:
+            if requesting_user.lower() == obj.user.username.lower():
+                return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
         elif obj.avatar_approved:
             return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
         else:
