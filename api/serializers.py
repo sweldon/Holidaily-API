@@ -38,7 +38,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if not obj.profile_image:
             return None
         elif requesting_user:
-            if requesting_user.lower() == obj.user.username.lower():
+            if (
+                requesting_user.lower() == obj.user.username.lower()
+                or obj.avatar_approved
+            ):
                 return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
         elif obj.avatar_approved:
             return f"{CLOUDFRONT_DOMAIN}/{obj.profile_image}"
