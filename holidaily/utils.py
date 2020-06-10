@@ -87,6 +87,12 @@ def sync_devices(registration_id, platform, user=None):
                 )
                 existing_device.registration_id = registration_id
                 existing_device.save()
+                # Existing user got a new phone, or reinstalled and logged back in
+                existing_unassigned = device_class.objects.filter(
+                    registration_id=registration_id, user__isnull=True
+                ).last()
+                if existing_unassigned:
+                    existing_unassigned.delete()
         else:
             unassigned_device = device_class.objects.filter(
                 registration_id=registration_id, user__isnull=True
