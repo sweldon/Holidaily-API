@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.forms import model_to_dict
+from push_notifications.models import APNSDevice, GCMDevice
 
 from holidaily.utils import send_slack, sync_devices, send_push_to_user
 from .models import (
@@ -114,6 +115,14 @@ class UserList(APIView):
                 profile.save(update_fields=update_fields)
                 if device_id and platform:
                     sync_devices(device_id, platform, user)
+
+                # Duplicate device fix
+                device_class = APNSDevice if platform == IOS else GCMDevice
+                existing_unassigned = device_class.objects.filter(
+                    registration_id=profile.device_id, user__isnull=True
+                ).last()
+                if existing_unassigned:
+                    existing_unassigned.delete()
 
             # New system
             if device_update:
