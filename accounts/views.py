@@ -7,7 +7,7 @@ from api.constants import DISALLOWED_EMAILS
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils import six
@@ -140,7 +140,7 @@ class UserRegisterView(generics.GenericAPIView):
             )
             current_site = get_current_site(request)
             mail_subject = "Welcome to Holidaily!"
-            message = render_to_string(
+            html_message = render_to_string(
                 "portal/activate.html",
                 {
                     "user": user,
@@ -149,7 +149,9 @@ class UserRegisterView(generics.GenericAPIView):
                     "token": self.account_activation_token.make_token(user),
                 },
             )
-            activation_email = EmailMessage(mail_subject, message, to=[email])
+            # activation_email = EmailMessage(mail_subject, message, to=[email])
+            activation_email = EmailMultiAlternatives(mail_subject, to=[email])
+            activation_email.attach_alternative(html_message, "text/html")
             activation_email.send(fail_silently=False)
             if ENABLE_NEW_USER_ALERT:
                 send_slack(
