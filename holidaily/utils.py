@@ -86,6 +86,7 @@ def sync_devices(registration_id, platform, user=None):
                     f"{existing_device.registration_id } to {registration_id}"
                 )
                 existing_device.registration_id = registration_id
+                existing_device.active = True
                 existing_device.save()
                 # Existing user got a new phone, or reinstalled and logged back in
                 existing_unassigned = device_class.objects.filter(
@@ -101,6 +102,7 @@ def sync_devices(registration_id, platform, user=None):
                 print("assigning unassigned device")
                 # Replace unassigned device with logged in user
                 unassigned_device.user = user
+                unassigned_device.active = True
                 unassigned_device.save()
             else:
                 print("creating new device")
