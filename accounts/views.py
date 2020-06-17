@@ -16,8 +16,9 @@ from api.disallowed_usernames import BAD_USERNAMES, BASIC_BAD_WORDS
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from holidaily.settings import ENABLE_NEW_USER_ALERT
+from holidaily.settings import ENABLE_NEW_USER_ALERT, EMAIL_HOST_USER, EMAIL_HOST
 from holidaily.utils import send_slack, sync_devices
+from validate_email import validate_email
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -134,6 +135,26 @@ class UserRegisterView(generics.GenericAPIView):
                 },
             )
         else:
+            email_is_valid = validate_email(
+                email_address=email,
+                check_regex=True,
+                check_mx=True,
+                from_address=EMAIL_HOST_USER,
+                helo_host=EMAIL_HOST,
+                smtp_timeout=10,
+                dns_timeout=10,
+                use_blacklist=True,
+                debug=False,
+            )
+            if not email_is_valid:
+                return Response(
+                    {
+                        "message": f"The email you provided is not valid. Please make sure there "
+                        f"are no typos: {email}",
+                        "status": rest_status.HTTP_400_BAD_REQUEST,
+                    },
+                )
+
             # User profile will be created on first login
             user = User.objects.create_user(
                 username=username, password=password, is_active=False, email=email
@@ -149,7 +170,6 @@ class UserRegisterView(generics.GenericAPIView):
                     "token": self.account_activation_token.make_token(user),
                 },
             )
-            # activation_email = EmailMessage(mail_subject, message, to=[email])
             activation_email = EmailMultiAlternatives(mail_subject, to=[email])
             activation_email.attach_alternative(html_message, "text/html")
             activation_email.send(fail_silently=False)
