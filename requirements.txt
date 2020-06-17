@@ -12,3 +12,4 @@ boto3==1.11.11
 image==1.5.28
 slackclient==2.5.0
 django-push-notifications==2.0.0
+py3-validate-email==0.2.9
