@@ -183,3 +183,5 @@ PUSH_NOTIFICATIONS_SETTINGS = {
 }
 
 UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
+
+VALIDATE_EMAIL = False
