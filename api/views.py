@@ -81,12 +81,19 @@ class UserList(APIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    # TODO remove this get when all users on or above 1.2
     def get(self, request):
-        user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[:50]
-        serializer = UserProfileSerializer(user_list, many=True)
-        results = {"results": serializer.data}
-        return Response(results)
+        search = request.GET.get("search", None)
+        if search:
+            # User searching for another user to mention
+            user_list = (
+                UserProfile.objects.filter(user__username=search)
+                or UserProfile.objects.filter(user__username__startswith=search)[:5]
+            )
+            serializer = UserProfileSerializer(user_list, many=True)
+            results = {"results": serializer.data}
+            return Response(results)
+        else:
+            return Response({"message": "Not a valid request"}, status=404,)
 
     def post(self, request):
         username = request.POST.get("username", None)

@@ -154,7 +154,7 @@ SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 # Supports second, minute, hour, day
 REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"anon": "100/minute"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "200/minute"},
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
