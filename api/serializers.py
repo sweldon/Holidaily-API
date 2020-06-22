@@ -232,6 +232,7 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
     timestamp = serializers.DateTimeField()
     title = serializers.CharField()
     time_since = serializers.SerializerMethodField()
+    icon = serializers.SerializerMethodField()
 
     def get_notification_type(self, obj):
         if obj.notification_type == NEWS_NOTIFICATION:
@@ -242,6 +243,15 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
         return normalize_time(time_ago, "precise")
+
+    def get_icon(self, obj):
+        profile = UserProfile.objects.filter(user=obj.user).first()
+        icon = (
+            f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
+            if profile and profile.avatar_approved
+            else None
+        )
+        return icon
 
     class Meta:
         model = UserNotifications
@@ -254,4 +264,5 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             "timestamp",
             "title",
             "time_since",
+            "icon",
         )
