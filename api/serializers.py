@@ -245,7 +245,13 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
         return normalize_time(time_ago, "precise")
 
     def get_icon(self, obj):
-        profile = UserProfile.objects.filter(user=obj.user).first()
+        profile = None
+
+        if obj.notification_type == COMMENT_NOTIFICATION:
+            profile = UserProfile.objects.filter(
+                user=Comment.objects.get(id=obj.notification_id).user
+            ).first()
+
         icon = (
             f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
             if profile and profile.avatar_approved
