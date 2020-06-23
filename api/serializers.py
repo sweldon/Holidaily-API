@@ -248,9 +248,9 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
         profile = None
 
         if obj.notification_type == COMMENT_NOTIFICATION:
-            profile = UserProfile.objects.filter(
-                user=Comment.objects.get(id=obj.notification_id).user
-            ).first()
+            c = Comment.objects.filter(id=obj.notification_id).first()
+            if c:
+                profile = UserProfile.objects.filter(user=c.user).first()
 
         icon = (
             f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
