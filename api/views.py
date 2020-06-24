@@ -421,6 +421,54 @@ class CommentDetail(APIView):
         results = {"results": serializer.data}
         return Response(results)
 
+    def patch(self, request, pk):
+        device_id = request.data.get("device_id", None)
+        username = request.data.get("username", None)
+        content = request.data.get("content", None)
+
+        try:
+            comment = self.get_object(pk)
+        except:  # noqa
+            results = {
+                "status": HTTP_404_NOT_FOUND,
+                "message": "Comment no longer exists",
+            }
+            return Response(results)
+
+        if device_id is not None:
+            device_id = device_id.strip()
+        else:
+            results = {
+                "status": HTTP_400_BAD_REQUEST,
+                "message": "Please log back in and try again",
+            }
+            return Response(results)
+
+        device_profile = UserProfile.objects.filter(
+            user__username=username, device_id=device_id
+        ).first()
+        if not device_profile:
+            results = {
+                "status": HTTP_403_FORBIDDEN,
+                "message": "Please log back in and try again",
+            }
+            return Response(results)
+
+        device_user = device_profile.user.id
+        comment_user = comment.user.id
+        if device_user == comment_user:
+            comment.content = content
+            comment.save()
+        else:
+            results = {
+                "status": HTTP_403_FORBIDDEN,
+                "message": "You aren't allowed to edit this comment",
+            }
+            return Response(results)
+
+        results = {"status": 200, "message": "OK"}
+        return Response(results)
+
     def post(self, request, pk):
         vote = request.POST.get("vote", None)
         username = request.POST.get("username", None)
