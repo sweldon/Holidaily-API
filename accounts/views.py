@@ -181,7 +181,7 @@ class UserRegisterView(generics.GenericAPIView):
             activation_email.send(fail_silently=False)
             if ENABLE_NEW_USER_ALERT:
                 send_slack(
-                    f":tada: NEW USER ALERT :tada: *{username}* ({email})",
+                    f":alert: NEW USER ALERT :alert: *{username}* ({email})",
                     channel="hype",
                 )
             return Response(
