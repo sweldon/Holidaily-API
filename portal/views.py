@@ -27,6 +27,7 @@ class TokenGenerator(PasswordResetTokenGenerator):
             + six.text_type(user.is_active)
         )
 
+
 def index(request):
     return render(request, "portal/applink.html")
 
@@ -42,7 +43,9 @@ def activate(request, uidb64, token):
     if user and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        return render(request, "portal/activation_result.html", {"status": 200})
+        return render(
+            request, "portal/activation_result.html", {"status": 200, "token": token}
+        )
     else:
         return render(request, "portal/activation_result.html", {"status": 500})
 
