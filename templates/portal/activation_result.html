@@ -8,8 +8,7 @@
         <link rel="stylesheet" type="text/css" href="/static/base/style/style.css?v={{version}}" />
         <script>
             function goBackToApp(){
-                var inUrl = document.location.href;
-                var toApp = "holidaily://?id=activated";
+                var toApp = "holidaily://?id=activated&token={{ token }}";
                 window.location = toApp;
             }
         </script>
@@ -24,11 +23,11 @@
             <div class="denied" style="text-align: center;color:green;">
                You're activated! Please head back to the app.
             </div>
-            <script>goBackToApp()</script>
+                <script>goBackToApp()</script>
             {% else %}
             <div class="denied" style="text-align: center;color:red;">
                 Account activation failed. Try registering again, your token may have expired.
-             </div>
+            </div>
             {% endif %}
             </div>
         </div>

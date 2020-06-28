@@ -102,6 +102,7 @@ class UserRegisterView(generics.GenericAPIView):
         username = request.data.get("username", None)
         password = request.data.get("password", None)
         email = request.data.get("email", None)
+        device_id = request.data.get("device_id", None)
         existing_user = User.objects.filter(username=username).exists()
         existing_email = User.objects.filter(email=email).exists()
 
@@ -167,24 +168,30 @@ class UserRegisterView(generics.GenericAPIView):
             )
             current_site = get_current_site(request)
             mail_subject = "Welcome to Holidaily!"
+            activation_token = self.account_activation_token.make_token(user)
             html_message = render_to_string(
                 "portal/activate.html",
                 {
                     "user": user,
                     "domain": current_site.domain,
                     "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                    "token": self.account_activation_token.make_token(user),
+                    "token": activation_token,
                 },
             )
             activation_email = EmailMultiAlternatives(mail_subject, to=[email])
             activation_email.attach_alternative(html_message, "text/html")
             activation_email.send(fail_silently=False)
+            UserProfile.objects.create(user=user, device_id=device_id)
             if ENABLE_NEW_USER_ALERT:
                 send_slack(
                     f":alert: NEW USER ALERT :alert: *{username}* ({email})",
                     channel="hype",
                 )
             return Response(
-                {"message": "OK", "status": rest_status.HTTP_200_OK},
+                {
+                    "message": "OK",
+                    "status": rest_status.HTTP_200_OK,
+                    "token": activation_token,
+                },
                 status=rest_status.HTTP_200_OK,
             )
