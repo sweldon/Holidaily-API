@@ -24,6 +24,7 @@ from holidaily.settings import (
 )
 from holidaily.utils import send_slack, sync_devices
 from validate_email import validate_email
+from django.utils import timezone
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -104,6 +105,7 @@ class UserRegisterView(generics.GenericAPIView):
         email = request.data.get("email", None)
         device_id = request.data.get("device_id", None)
         platform = request.data.get("platform", None)
+        version = request.data.get("version", None)
         existing_user = User.objects.filter(username=username).exists()
         existing_email = User.objects.filter(email=email).exists()
 
@@ -182,9 +184,15 @@ class UserRegisterView(generics.GenericAPIView):
             activation_email = EmailMultiAlternatives(mail_subject, to=[email])
             activation_email.attach_alternative(html_message, "text/html")
             activation_email.send(fail_silently=False)
-            UserProfile.objects.create(user=user, device_id=device_id)
 
             if platform:
+                UserProfile.objects.create(
+                    user=user,
+                    device_id=device_id,
+                    platform=platform,
+                    version=version,
+                    last_launched=timezone.now(),
+                )
                 sync_devices(device_id, platform, user)
 
             if ENABLE_NEW_USER_ALERT:
