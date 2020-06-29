@@ -120,11 +120,12 @@ class UserList(APIView):
                 profile.last_launched = timezone.now()
                 profile.logged_out = False
                 profile.save(update_fields=update_fields)
+                # Logged out user
                 if device_id and platform:
                     # Token Refresh
                     sync_devices(device_id, platform, user)
                 else:
-                    # Duplicate device fix
+                    # Logged-in user duplicate anon device cleanup, NOT via syncUser()
                     device_class = APNSDevice if platform == IOS else GCMDevice
                     existing_unassigned = device_class.objects.filter(
                         registration_id=profile.device_id, user__isnull=True
@@ -132,7 +133,7 @@ class UserList(APIView):
                     if existing_unassigned:
                         existing_unassigned.delete()
 
-            # New system
+            # isLoggedIn syncUser()
             if device_update:
                 if profile and device_update != profile.device_id:
                     profile.device_id = device_update

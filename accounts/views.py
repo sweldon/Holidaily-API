@@ -103,6 +103,7 @@ class UserRegisterView(generics.GenericAPIView):
         password = request.data.get("password", None)
         email = request.data.get("email", None)
         device_id = request.data.get("device_id", None)
+        platform = request.data.get("platform", None)
         existing_user = User.objects.filter(username=username).exists()
         existing_email = User.objects.filter(email=email).exists()
 
@@ -182,6 +183,10 @@ class UserRegisterView(generics.GenericAPIView):
             activation_email.attach_alternative(html_message, "text/html")
             activation_email.send(fail_silently=False)
             UserProfile.objects.create(user=user, device_id=device_id)
+
+            if platform:
+                sync_devices(device_id, platform, user)
+
             if ENABLE_NEW_USER_ALERT:
                 send_slack(
                     f":alert: NEW USER ALERT :alert: *{username}* ({email})",
