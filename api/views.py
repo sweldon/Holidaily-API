@@ -87,7 +87,7 @@ class UserList(APIView):
             # User searching for another user to mention
             user_list = (
                 UserProfile.objects.filter(user__username=search)
-                or UserProfile.objects.filter(user__username__startswith=search)[:5]
+                or UserProfile.objects.filter(user__username__istartswith=search)[:5]
             )
             serializer = UserProfileSerializer(user_list, many=True)
             results = {"results": serializer.data}
