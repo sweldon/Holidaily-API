@@ -145,9 +145,9 @@ class UserList(APIView):
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
         elif requesting_user:
-            user_list = UserProfile.objects.filter(confetti__gt=0).order_by("confetti")[
-                :50
-            ]
+            user_list = UserProfile.objects.filter(
+                confetti__gt=0, user__is_staff=False
+            ).order_by("confetti")[:50]
             serializer = UserProfileSerializer(
                 user_list, many=True, context={"requesting_user": requesting_user}
             )
