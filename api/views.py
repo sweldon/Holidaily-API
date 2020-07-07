@@ -145,6 +145,7 @@ class UserList(APIView):
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
         elif requesting_user:
+            # Confetti leaderboard
             user_list = UserProfile.objects.filter(
                 confetti__gt=0, user__is_staff=False
             ).order_by("confetti")[:50]
@@ -459,6 +460,7 @@ class CommentDetail(APIView):
         comment_user = comment.user.id
         if device_user == comment_user:
             comment.content = content
+            comment.edited = timezone.now()
             comment.save()
         else:
             results = {
@@ -742,7 +744,7 @@ class CommentList(generics.GenericAPIView):
                     c_dict["user"] = c.user.username
                     c_dict["avatar"] = avatar
                     c_dict["vote_status"] = self.get_vote_status(username, c)
-
+                    c_dict["edited"] = c.time_since_edit
                     c_dict["blocked"] = False
                     c_dict["reported"] = False
                     if c in reported_comments:
