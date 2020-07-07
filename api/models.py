@@ -197,6 +197,7 @@ class Comment(models.Model):
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
     deleted = models.BooleanField(default=False)
     reports = models.IntegerField(default=0)
+    edited = models.DateTimeField(blank=True, null=True)
 
     @property
     def replies(self):
@@ -207,6 +208,12 @@ class Comment(models.Model):
     def time_since(self):
         time_ago = humanize.naturaltime(timezone.now() - self.timestamp)
         return normalize_time(time_ago, "precise")
+
+    @property
+    def time_since_edit(self):
+        if self.edited:
+            time_ago = humanize.naturaltime(timezone.now() - self.edited)
+            return normalize_time(time_ago, "precise")
 
     def __str__(self):
         return f"{self.content[:100]}..."

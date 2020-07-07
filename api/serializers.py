@@ -135,10 +135,16 @@ class CommentSerializer(serializers.ModelSerializer):
     time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
     deleted = serializers.BooleanField()
+    edited = serializers.SerializerMethodField()
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
         return normalize_time(time_ago, "precise")
+
+    def get_edited(self, obj):
+        if obj.edited:
+            time_ago = humanize.naturaltime(timezone.now() - obj.edited)
+            return normalize_time(time_ago, "precise")
 
     def get_vote_status(self, obj):
         username = self.context.get("username", None)
@@ -169,6 +175,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "time_since",
             "vote_status",
             "deleted",
+            "edited",
         )
 
 
