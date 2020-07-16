@@ -785,6 +785,30 @@ class UserNotificationsView(generics.GenericAPIView):
     def post(self, request):
         username = request.POST.get("username", None)
         clear_notifications = request.POST.get("clear_notifications", None)
+        mark_read_id = request.POST.get("mark_read_id", None)
+        if mark_read_id:
+            mark_read_type = request.POST.get("mark_read_type", None)
+            n_type = None
+
+            if mark_read_type == "comment":
+                n_type = COMMENT_NOTIFICATION
+
+            # Can add more types in the future
+            if n_type is not None:
+                notification = UserNotifications.objects.filter(
+                    notification_type=n_type, notification_id=mark_read_id
+                ).first()
+                if notification:
+                    notification.read = True
+                    notification.save()
+            else:
+                raise RequestError(f"Notification type {mark_read_type} not valid")
+            unread = UserNotifications.objects.filter(
+                user__username=username, read=False
+            ).count()
+            results = {"status": HTTP_200_OK, "unread": unread}
+            return Response(results)
+
         notifications = UserNotifications.objects.filter(
             Q(user__username=username)
             | (Q(notification_type=NEWS_NOTIFICATION) & Q(user__isnull=True))
