@@ -36,7 +36,7 @@ def send_slack(message, channel=DEFAULT_SLACK_CHANNEL):
 
 
 def send_push_to_user(user, title, body, notif_obj=None):
-    from api.models import UserProfile, Comment
+    from api.models import UserProfile, Comment, UserNotifications
 
     # TODO determine badge count on IOS by UserNotifications where read=False
     extra_data = {}
@@ -57,13 +57,15 @@ def send_push_to_user(user, title, body, notif_obj=None):
         return
     device_class = APNSDevice if platform == IOS else GCMDevice
     device = device_class.objects.filter(user=user).last()
+
     if device:
+        unread = UserNotifications.objects.filter(user=user, read=False).count()
         if platform == IOS:
             device.send_message(
-                message={"title": title, "body": body}, extra=extra_data, badge=1,
+                message={"title": title, "body": body}, extra=extra_data, badge=unread,
             )
         else:
-            device.send_message(body, title=title, badge=1, extra=extra_data)
+            device.send_message(body, title=title, badge=unread, extra=extra_data)
 
 
 def sync_devices(registration_id, platform, user=None):
