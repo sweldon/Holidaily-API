@@ -649,13 +649,21 @@ class CommentList(generics.GenericAPIView):
                 )
                 new_comment.save()
                 mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
-                notifications = []
+                # notifications = []
                 for user_mention in mentions:
                     if user_mention == username:
                         continue
                     # Get user profiles, exclude self if user mentions themself for some reason
                     user_to_notify = User.objects.filter(username=user_mention).first()
                     if user_to_notify:
+                        UserNotifications.objects.create(
+                            notification_id=new_comment.pk,
+                            notification_type=COMMENT_NOTIFICATION,
+                            user=user_to_notify,
+                            content=content,
+                            title=f"{username} on {holiday.name}",
+                        )
+                        # notifications.append(n)
                         try:
                             send_push_to_user(
                                 user_to_notify,
@@ -667,15 +675,7 @@ class CommentList(generics.GenericAPIView):
                             print(
                                 f"Error sending push, bad device token for {user_to_notify}"
                             )
-                        n = UserNotifications(
-                            notification_id=new_comment.pk,
-                            notification_type=COMMENT_NOTIFICATION,
-                            user=user_to_notify,
-                            content=content,
-                            title=f"{username} on {holiday.name}",
-                        )
-                        notifications.append(n)
-                UserNotifications.objects.bulk_create(notifications)
+                # UserNotifications.objects.bulk_create(notifications)
                 results = {"status": HTTP_200_OK, "message": "OK"}
                 return Response(results)
             else:
