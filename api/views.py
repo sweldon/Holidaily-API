@@ -814,8 +814,8 @@ class UserNotificationsView(generics.GenericAPIView):
             | (Q(notification_type=NEWS_NOTIFICATION) & Q(user__isnull=True))
         ).order_by("-id")[:20]
         unread = UserNotifications.objects.filter(user__username=username, read=False)
-        if clear_notifications:
-            unread.update(read=True)
         serializer = UserNotificationsSerializer(notifications, many=True)
         results = {"results": serializer.data, "unread": unread.count()}
+        if clear_notifications:
+            unread.update(read=True)
         return Response(results)
