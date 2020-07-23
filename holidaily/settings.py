@@ -11,9 +11,15 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+
+import boto3
 import slack
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import twitter
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+from elasticsearch import Elasticsearch, RequestsHttpConnection
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -187,3 +193,44 @@ PUSH_NOTIFICATIONS_SETTINGS = {
 UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
 
 VALIDATE_EMAIL = False
+
+# Elasticsearch
+ELASTICSEARCH_URL = (
+    "localhost"
+    if DEBUG
+    else "vpc-holidaily-whftt656ee67zuxz22fqk2euny.us-east-1.es.amazonaws.com"
+)
+ELASTICSEARCH_PORT = 9200 if DEBUG else 443
+
+session = boto3.session.Session()
+credentials = session.get_credentials().get_frozen_credentials()
+
+AWS_AUTH = AWSRequestsAuth(
+    aws_access_key=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+    aws_host=ELASTICSEARCH_URL,
+    aws_region=session.region_name,
+    aws_service="es",
+)
+
+ES_CLIENT = Elasticsearch(
+    hosts=[{"host": ELASTICSEARCH_URL, "port": ELASTICSEARCH_PORT}],
+    http_auth=AWS_AUTH,
+    use_ssl=True if not DEBUG else False,
+    verify_certs=True if not DEBUG else False,
+    connection_class=RequestsHttpConnection,
+)
+
+TWEET_INDEX_NAME = "tweets"
+
+TWITTER_API_KEY = os.environ["TWITTER_API_KEY"]
+TWITTER_API_SECRET = os.environ["TWITTER_API_SECRET"]
+TWITTER_ACCESS_TOKEN = os.environ["TWITTER_ACCESS_TOKEN"]
+TWITTER_ACCESS_SECRET = os.environ["TWITTER_ACCESS_SECRET"]
+TWITTER_CLIENT = twitter.Api(
+    consumer_key=TWITTER_API_KEY,
+    consumer_secret=TWITTER_API_SECRET,
+    access_token_key=TWITTER_ACCESS_TOKEN,
+    access_token_secret=TWITTER_ACCESS_SECRET,
+    tweet_mode="extended",
+)

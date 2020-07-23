@@ -13,3 +13,7 @@ image==1.5.28
 slackclient==2.5.0
 django-push-notifications==2.0.0
 py3-validate-email==0.2.9
+python-twitter==3.5
+aws-requests-auth==0.4.3
+elasticsearch==7.8.0
+elasticsearch-dsl==7.2.1

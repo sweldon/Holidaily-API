@@ -1,8 +1,12 @@
+import humanize
+import pytz
 from django.db.models import Q
 from django.forms import model_to_dict
+from elasticsearch_dsl import Search
 from push_notifications.models import APNSDevice, GCMDevice
+from rest_framework.decorators import api_view
 
-from holidaily.utils import send_slack, sync_devices, send_push_to_user
+from holidaily.utils import send_slack, sync_devices, send_push_to_user, normalize_time
 from .models import (
     Holiday,
     UserHolidayVotes,
@@ -54,7 +58,12 @@ from api.constants import (
 )
 from api.exceptions import RequestError, DeniedError
 import re
-from holidaily.settings import COMMENT_PAGE_SIZE, UPDATE_ALERT
+from holidaily.settings import (
+    COMMENT_PAGE_SIZE,
+    UPDATE_ALERT,
+    ES_CLIENT,
+    TWEET_INDEX_NAME,
+)
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -819,3 +828,29 @@ class UserNotificationsView(generics.GenericAPIView):
         if clear_notifications:
             unread.update(read=True)
         return Response(results)
+
+
+@api_view(["GET"])
+def tweets_view(request):
+    page = int(request.GET.get("page", 0))
+    TWEET_PAGE_SIZE = 30
+    s = Search(using=ES_CLIENT, index=TWEET_INDEX_NAME).sort("-twitter_id")
+    # total = s.count()
+    chunk = page * TWEET_PAGE_SIZE
+    # s = s[0:total]
+    s = s[chunk : chunk + TWEET_PAGE_SIZE]
+    hits = s.execute().hits
+    results = hits.hits
+    response = []
+
+    for hit in results:
+        h = hit["_source"].to_dict()
+        tweet_timestamp = h["timestamp"]
+        dt = datetime.strptime(tweet_timestamp, "%a %b %d %H:%M:%S +0000 %Y")
+        utc = dt.replace(tzinfo=pytz.UTC)
+        time_ago = humanize.naturaltime(datetime.now(timezone.utc) - utc)
+        time_since = normalize_time(time_ago, "precise")
+        h["timestamp"] = time_since
+        response.append(h)
+
+    return Response(response)
