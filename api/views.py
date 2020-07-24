@@ -849,7 +849,7 @@ def tweets_view(request):
         dt = datetime.strptime(tweet_timestamp, "%a %b %d %H:%M:%S +0000 %Y")
         utc = dt.replace(tzinfo=pytz.UTC)
         time_ago = humanize.naturaltime(datetime.now(timezone.utc) - utc)
-        time_since = normalize_time(time_ago, "precise")
+        time_since = normalize_time(time_ago, "precise", short=True)
         h["timestamp"] = time_since
         response.append(h)
 

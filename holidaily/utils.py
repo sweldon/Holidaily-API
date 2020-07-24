@@ -8,11 +8,25 @@ from api.constants import (
 from holidaily.settings import SLACK_CLIENT
 
 
-def normalize_time(time_ago: str, time_type: str) -> str:
+def normalize_time(time_ago: str, time_type: str, short=False) -> str:
     """
     Create a human readable since since string, i.e. 2 minutes ago
     """
     if time_type == "precise":
+        if short:
+            time_ago = (
+                time_ago.replace("hours ago", "h")
+                .replace("an hour ago", "1h")
+                .replace("minutes ago", "m")
+                .replace("a minute ago", "1m")
+                .replace("seconds ago", "s")
+                .replace("a second ago", "1s")
+                .replace("days ago", "d")
+                .replace("a day ago", "1d")
+                .replace("year ago", "y")
+                .replace("years ago", "y")
+                .replace(" ", "")
+            )
         return time_ago
     elif time_type == "relative":
         if (
