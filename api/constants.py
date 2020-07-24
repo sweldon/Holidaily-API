@@ -55,5 +55,5 @@ DEFAULT_SLACK_CHANNEL = "holidaily-updates"
 ANDROID = "android"
 IOS = "ios"
 
-ANDROID_VERSION = "1.2.5"
-IOS_VERSION = "1.2.2"
+ANDROID_VERSION = "1.4"
+IOS_VERSION = "1.4"
