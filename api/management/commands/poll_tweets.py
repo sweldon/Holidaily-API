@@ -27,15 +27,20 @@ class Command(BaseCommand):
     @staticmethod
     def _clean_tweet(tweet_data):
         tweet = {}
+        handle = tweet_data.get("user", {}).get("screen_name")
+        tweet_id = tweet_data.get("id")
         tweet["user"] = tweet_data.get("user", {}).get("name")
+        tweet["handle"] = f"@{handle}"
         tweet["body"] = tweet_data.get("full_text")
         tweet["timestamp"] = tweet_data.get("created_at")
-        tweet["twitter_id"] = tweet_data.get("id")
+        tweet["twitter_id"] = tweet_id
         tweet["user_profile_image"] = tweet_data.get("user", {}).get(
             "profile_image_url_https"
         )
-
-        tweet_media = tweet_data.get("entities", {}).get("media", {})
+        tweet["user_verified"] = tweet_data.get("user", {}).get("verified", False)
+        tweet["url"] = f"https://twitter.com/{handle}/status/{tweet_id}"
+        entity_data = tweet_data.get("entities", {})
+        tweet_media = entity_data.get("media", {})
         if len(tweet_media) > 0:
             tweet["image"] = tweet_media[0].get("media_url_https")
         else:
@@ -113,7 +118,7 @@ class Command(BaseCommand):
                 term=search_str_filtered,
                 result_type=tweet_type if tweet_type else "mixed",
                 return_json=True,
-                count=30,
+                count=60,
                 since_id=last_indexed_tweet.get("twitter_id") if not recreate else None,
             )["statuses"]
 
