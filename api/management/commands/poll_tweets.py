@@ -113,13 +113,14 @@ class Command(BaseCommand):
                 term=search_str_filtered,
                 result_type=tweet_type if tweet_type else "mixed",
                 return_json=True,
-                count=30,
+                count=60,
                 since_id=last_indexed_tweet.get("twitter_id") if not recreate else None,
             )["statuses"]
 
             for r in trend_results:
                 results.append(r)
 
+        count = 0
         for tweet in results:
             tweet = self._clean_tweet(tweet)
             # since_id should be new tweets, but check existence just in case
@@ -130,4 +131,5 @@ class Command(BaseCommand):
                     body=tweet,
                     id=tweet.get("twitter_id"),
                 )
-                print(f"Indexed tweet {tweet.get('twitter_id')}")
+                count += 1
+        print(f"[{timezone.now()}] Indexed {count} tweets")
