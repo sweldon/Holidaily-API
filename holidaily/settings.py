@@ -17,7 +17,7 @@ import slack
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import twitter
-from aws_requests_auth.aws_auth import AWSRequestsAuth
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -205,12 +205,8 @@ ELASTICSEARCH_PORT = 9200 if DEBUG else 443
 session = boto3.session.Session()
 credentials = session.get_credentials().get_frozen_credentials()
 
-AWS_AUTH = AWSRequestsAuth(
-    aws_access_key=os.environ["AWS_ACCESS_KEY_ID"],
-    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-    aws_host=ELASTICSEARCH_URL,
-    aws_region=session.region_name,
-    aws_service="es",
+AWS_AUTH = BotoAWSRequestsAuth(
+    aws_host=ELASTICSEARCH_URL, aws_region="us-east-1", aws_service="es"
 )
 
 ES_CLIENT = Elasticsearch(
