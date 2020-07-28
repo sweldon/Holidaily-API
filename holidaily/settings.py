@@ -212,7 +212,7 @@ AWS_AUTH = BotoAWSRequestsAuth(
 ES_CLIENT = Elasticsearch(
     hosts=[{"host": ELASTICSEARCH_URL, "port": ELASTICSEARCH_PORT}],
     http_auth=AWS_AUTH,
-    use_ssl=True if not DEBUG else False,
+    use_ssl=True,
     verify_certs=True if not DEBUG else False,
     connection_class=RequestsHttpConnection,
 )
