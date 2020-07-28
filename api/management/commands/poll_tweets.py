@@ -122,6 +122,7 @@ class Command(BaseCommand):
             for r in trend_results:
                 results.append(r)
 
+        count = 0
         for tweet in results:
             tweet = self._clean_tweet(tweet)
             # since_id should be new tweets, but check existence just in case
@@ -132,4 +133,5 @@ class Command(BaseCommand):
                     body=tweet,
                     id=tweet.get("twitter_id"),
                 )
-                print(f"Indexed tweet {tweet.get('twitter_id')}")
+                count += 1
+        print(f"[{timezone.now()}] Indexed {count} tweets")
