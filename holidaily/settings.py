@@ -195,12 +195,8 @@ UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
 VALIDATE_EMAIL = True
 
 # Elasticsearch
-ELASTICSEARCH_URL = (
-    "localhost"
-    if DEBUG
-    else "vpc-holidaily-whftt656ee67zuxz22fqk2euny.us-east-1.es.amazonaws.com"
-)
-ELASTICSEARCH_PORT = 9200 if DEBUG else 443
+ELASTICSEARCH_URL = "vpc-holidaily-whftt656ee67zuxz22fqk2euny.us-east-1.es.amazonaws.com"
+ELASTICSEARCH_PORT = 443
 
 session = boto3.session.Session()
 credentials = session.get_credentials().get_frozen_credentials()
@@ -213,7 +209,7 @@ ES_CLIENT = Elasticsearch(
     hosts=[{"host": ELASTICSEARCH_URL, "port": ELASTICSEARCH_PORT}],
     http_auth=AWS_AUTH,
     use_ssl=True,
-    verify_certs=True if not DEBUG else False,
+    verify_certs=True,
     connection_class=RequestsHttpConnection,
 )
 
