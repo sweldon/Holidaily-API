@@ -192,7 +192,7 @@ PUSH_NOTIFICATIONS_SETTINGS = {
 
 UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
 
-VALIDATE_EMAIL = True
+VALIDATE_EMAIL = False if DEBUG else True
 
 # Elasticsearch
 ELASTICSEARCH_URL = "vpc-holidaily-whftt656ee67zuxz22fqk2euny.us-east-1.es.amazonaws.com"
