@@ -85,7 +85,6 @@ class Command(BaseCommand):
         # Run at midnight, and delete all tweets for next day
         if recreate:
             self._create_index(index_name="tweets")
-            return
 
         today = timezone.now().date()
         todays_holidays = Holiday.objects.filter(date=today, active=True)
@@ -115,7 +114,8 @@ class Command(BaseCommand):
                 term=search_str_filtered,
                 result_type=tweet_type if tweet_type else "mixed",
                 return_json=True,
-                count=5,
+                count=10,
+                lang="en",
                 since_id=last_indexed_tweet.get("twitter_id") if not recreate else None,
             )["statuses"]
 
