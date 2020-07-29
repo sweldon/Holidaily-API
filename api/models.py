@@ -241,7 +241,7 @@ class UserNotifications(models.Model):
     read = models.BooleanField(default=False)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=150)
 
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
