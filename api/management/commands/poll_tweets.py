@@ -38,17 +38,34 @@ class Command(BaseCommand):
         )
         tweet["user_verified"] = tweet_data.get("user", {}).get("verified", False)
         tweet["url"] = f"https://twitter.com/{handle}/status/{tweet_id}"
+
         entity_data = tweet_data.get("entities", {})
-        tweet_media = entity_data.get("media", {})
+
+        tweet_media = entity_data.get("media", [])
         if len(tweet_media) > 0:
             tweet["image"] = tweet_media[0].get("media_url_https")
-        else:
-            quoted_media = (
-                tweet_data.get("quoted_status", {}).get("entities", {}).get("media", {})
-            )
-            if len(quoted_media) > 0:
-                tweet["image"] = quoted_media[0].get("media_url_https")
-                print(f"Found media in a quoted tweet {quoted_media[0].get('id')}")
+            for m in tweet_media:
+                url = m.get("url")
+                tweet["body"] = tweet["body"].replace(url, "")
+            tweet["body"] = tweet["body"].strip()
+
+        quoted_media = (
+            tweet_data.get("quoted_status", {}).get("entities", {}).get("media", {})
+        )
+        if len(quoted_media) > 0:
+            tweet["image"] = quoted_media[0].get("media_url_https")
+            # Remove url from body
+            for q in quoted_media:
+                url = q.get("url")
+                tweet["body"] = tweet["body"].replace(url, "")
+            tweet["body"] = tweet["body"].strip()
+
+        urls = entity_data.get("urls", [])
+        if len(urls) > 0:
+            for u in urls:
+                url = u.get("url")
+                tweet["body"] = tweet["body"].replace(url, "")
+            tweet["body"] = tweet["body"].strip()
 
         return tweet
 

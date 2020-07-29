@@ -64,6 +64,7 @@ from holidaily.settings import (
     ES_CLIENT,
     TWEET_INDEX_NAME,
 )
+import html
 
 
 def add_notification(n_id, n_type, user, content, title):
@@ -842,7 +843,6 @@ def tweets_view(request):
     hits = s.execute().hits
     results = hits.hits
     response = []
-
     for hit in results:
         h = hit["_source"].to_dict()
         tweet_timestamp = h["timestamp"]
@@ -851,6 +851,7 @@ def tweets_view(request):
         time_ago = humanize.naturaltime(datetime.now(timezone.utc) - utc)
         time_since = normalize_time(time_ago, "precise", short=True)
         h["timestamp"] = time_since
+        h["body"] = html.unescape(h["body"])
         response.append(h)
 
     return Response(response)
