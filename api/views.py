@@ -184,6 +184,10 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         check_update = request.POST.get("check_update", None)
         avatar = request.FILES.get("file", None)
         profile = UserProfile.objects.filter(user__username=username).first()
+
+        if not profile:
+            return Response({"status": 404, "message": "User not found"})
+
         if logout is not None:
             profile.logged_out = bool(logout)
             profile.save()
@@ -248,11 +252,11 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             serializer = UserProfileSerializer(
                 profile, context={"requesting_user": requesting_user}
             )
-            results = {"results": serializer.data}
+            results = {"results": serializer.data, "status": 200}
             return Response(results)
         else:
             serializer = UserProfileSerializer(profile)
-            results = {"results": serializer.data}
+            results = {"results": serializer.data, "status": 200}
             return Response(results)
 
 
