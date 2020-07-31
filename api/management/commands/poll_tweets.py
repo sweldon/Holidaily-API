@@ -106,7 +106,11 @@ class Command(BaseCommand):
         today = timezone.now().date()
         todays_holidays = Holiday.objects.filter(date=today, active=True)
 
-        hashtags = [f"#{h.name.replace(' ','')}" for h in todays_holidays]
+        hashtags = []
+        for h in todays_holidays:
+            cleaned_name = h.name.replace(" ", "").replace("'", "")
+            hashtag = f"#{cleaned_name}"
+            hashtags.append(hashtag)
 
         last_indexed_tweet = None
         if not recreate:
