@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from elasticsearch import RequestError
 from elasticsearch.client import IndicesClient
 from elasticsearch_dsl import Search
 
@@ -108,24 +109,32 @@ class Command(BaseCommand):
 
         hashtags = []
         for h in todays_holidays:
-            cleaned_name = h.name.replace(" ", "").replace("'", "")
+            cleaned_name = h.name.replace(" ", "").replace("'", "").replace("-", "")
             hashtag = f"#{cleaned_name}"
             hashtags.append(hashtag)
 
         last_indexed_tweet = None
         if not recreate:
-            last_indexed_tweet = (
-                (Search(using=ES_CLIENT, index=TWEET_INDEX_NAME).sort("-twitter_id"))
-                .source(["twitter_id", "timestamp"])[:1]
-                .execute()
-                .hits[0]
-                .to_dict()
-            )
+            try:
+                last_indexed_tweet = (
+                    (
+                        Search(using=ES_CLIENT, index=TWEET_INDEX_NAME).sort(
+                            "-twitter_id"
+                        )
+                    )
+                    .source(["twitter_id", "timestamp"])[:1]
+                    .execute()
+                    .hits[0]
+                    .to_dict()
+                )
 
-            print(
-                f"Indexing tweets since {last_indexed_tweet.get('timestamp')} "
-                f"(id {last_indexed_tweet.get('twitter_id')})"
-            )
+                print(
+                    f"Indexing tweets since {last_indexed_tweet.get('timestamp')} "
+                    f"(id {last_indexed_tweet.get('twitter_id')})"
+                )
+                last_indexed_tweet = last_indexed_tweet.get("twitter_id")
+            except RequestError:
+                last_indexed_tweet = None
 
         results = []
         images_only = "filter:images" if images_only else ""
@@ -137,7 +146,7 @@ class Command(BaseCommand):
                 return_json=True,
                 count=10,
                 lang="en",
-                since_id=last_indexed_tweet.get("twitter_id") if not recreate else None,
+                since_id=last_indexed_tweet,
             )["statuses"]
 
             for r in trend_results:
