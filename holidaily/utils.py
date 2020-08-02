@@ -58,6 +58,8 @@ def send_push_to_user(user, title, body, notif_obj=None):
     if not profile:
         return
     platform = profile.platform
+    unread = UserNotifications.objects.filter(user=user, read=False).count()
+    extra_data["unread"] = unread
     if isinstance(notif_obj, Comment):
         # notif_obj is a Comment
         extra_data["push_type"] = "comment"
