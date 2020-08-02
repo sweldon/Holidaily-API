@@ -161,11 +161,8 @@ class Holiday(models.Model):
         if not from_app:
             if self.image:
                 try:
-                    image_size = (HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT)
                     image_data = requests.get(self.image).content
                     image_object = Image.open(BytesIO(image_data))
-                    image_object.thumbnail(image_size)
-
                     byte_arr = BytesIO()
                     image_object.save(byte_arr, format=self.image_format)
                     image_data = byte_arr.getvalue()
