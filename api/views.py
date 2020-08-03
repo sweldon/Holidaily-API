@@ -185,6 +185,18 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         avatar = request.FILES.get("file", None)
         profile = UserProfile.objects.filter(user__username=username).first()
 
+        if check_update:
+            version = request.POST.get("version", None)
+            platform = request.POST.get("platform", None)
+            requires_update = False
+            if UPDATE_ALERT:
+                if platform == ANDROID and version != ANDROID_VERSION:
+                    requires_update = True
+                elif platform == IOS and version != IOS_VERSION:
+                    requires_update = True
+            results = {"needs_update": requires_update, "status": HTTP_200_OK}
+            return Response(results)
+
         if not profile:
             return Response({"status": 404, "message": "User not found"})
 
@@ -222,17 +234,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 "status": HTTP_200_OK,
             }
             return Response(results)
-        elif check_update:
-            version = request.POST.get("version", None)
-            platform = request.POST.get("platform", None)
-            requires_update = False
-            if UPDATE_ALERT:
-                if platform == ANDROID and version != ANDROID_VERSION:
-                    requires_update = True
-                elif platform == IOS and version != IOS_VERSION:
-                    requires_update = True
-            results = {"needs_update": requires_update, "status": HTTP_200_OK}
-            return Response(results)
+
         elif avatar:
             file_name = f"{username}_{avatar}"
             S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=avatar)
