@@ -68,6 +68,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "premium",
         "logged_out",
         "avatar_preview",
+        "referrer",
     )
     search_fields = (
         "user__username",
@@ -88,6 +89,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "logged_out",
         "avatar_full",
         "avatar_approved",
+        "referrer",
     )
     readonly_fields = ("avatar_full",)
 

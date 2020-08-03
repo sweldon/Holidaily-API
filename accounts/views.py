@@ -106,6 +106,7 @@ class UserRegisterView(generics.GenericAPIView):
         device_id = request.data.get("device_id", None)
         platform = request.data.get("platform", None)
         version = request.data.get("version", None)
+        referrer = request.data.get("referrer", None)
         existing_user = User.objects.filter(username=username).exists()
         existing_email = User.objects.filter(email=email).exists()
 
@@ -192,12 +193,16 @@ class UserRegisterView(generics.GenericAPIView):
                     platform=platform,
                     version=version,
                     last_launched=timezone.now(),
+                    referrer=referrer,
                 )
                 sync_devices(device_id, platform, user)
 
             if ENABLE_NEW_USER_ALERT:
+                referrer = (
+                    f" from *{referrer}*" if referrer else " (referrer not given)"
+                )
                 send_slack(
-                    f":alert: NEW USER ALERT :alert: *{username}* ({email})",
+                    f":alert: NEW USER ALERT :alert: *{username}* ({email}) on *{platform.upper()}*{referrer}",
                     channel="hype",
                 )
             return Response(
