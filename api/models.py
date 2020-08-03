@@ -62,6 +62,7 @@ class UserProfile(models.Model):
     version = models.CharField(max_length=50, default=None, blank=True, null=True)
     last_launched = models.DateTimeField(blank=True, null=True)
     avatar_approved = models.BooleanField(default=False)
+    referrer = models.CharField(max_length=50, blank=True, null=True)
 
     def avatar_preview(self):
         return (
