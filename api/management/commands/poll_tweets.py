@@ -12,9 +12,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--recreate_index")
         parser.add_argument(
-            "--images_only", dest="feature", default=False, action="store_true"
+            "--images_only", dest="images_only", default=False, action="store_true"
         )
         parser.add_argument("--tweet_type")
+        parser.add_argument(
+            "--full_day", dest="full_day", default=False, action="store_true"
+        )
 
     @staticmethod
     def _create_index(index_name):
@@ -99,6 +102,7 @@ class Command(BaseCommand):
         recreate = options.get("recreate_index")
         images_only = options.get("images_only")
         tweet_type = options.get("tweet_type")
+        full_day = options.get("full_day")
 
         # Run at midnight, and delete all tweets for next day
         if recreate:
@@ -112,9 +116,14 @@ class Command(BaseCommand):
             cleaned_name = h.name.replace(" ", "").replace("'", "").replace("-", "")
             hashtag = f"#{cleaned_name}"
             hashtags.append(hashtag)
-
         last_indexed_tweet = None
-        if not recreate:
+        since_date = None
+
+        if full_day:
+            since_date = timezone.now().strftime("%Y-%m-%d")
+            print(f"Getting tweets for entire day {since_date}")
+
+        if not recreate and not full_day:
             try:
                 last_indexed_tweet = (
                     (
@@ -144,9 +153,10 @@ class Command(BaseCommand):
                 term=search_str_filtered,
                 result_type=tweet_type if tweet_type else "mixed",
                 return_json=True,
-                count=10,
+                count=50,
                 lang="en",
                 since_id=last_indexed_tweet,
+                since=since_date,
             )["statuses"]
 
             for r in trend_results:
