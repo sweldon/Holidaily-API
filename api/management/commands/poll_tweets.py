@@ -155,7 +155,6 @@ class Command(BaseCommand):
             if trend in HOLIDAILY_TRENDS:
                 tweet_type = "recent"
                 search_str_filtered += "-brew -brewery -beer"
-            print(search_str_filtered)
             trend_results = TWITTER_CLIENT.GetSearch(
                 term=search_str_filtered,
                 result_type=tweet_type,
