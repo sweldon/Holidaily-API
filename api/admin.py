@@ -38,7 +38,8 @@ class HolidayAdmin(admin.ModelAdmin):
         "creator__username",
     )
     ordering = ("-created",)
-    readonly_fields = ("get_image", "created", "votes")
+    readonly_fields = ("get_image", "created", "votes", "creator_awarded")
+    raw_id_fields = ("creator",)
     fields = (
         "name",
         "date",
@@ -76,7 +77,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         "platform",
         "version",
         "last_launched",
-        "device_id",
         "confetti",
         "premium",
         "logged_out",
@@ -104,7 +104,8 @@ class UserProfileAdmin(admin.ModelAdmin):
         "avatar_approved",
         "referrer",
     )
-    readonly_fields = ("avatar_full",)
+    readonly_fields = ("avatar_full", "device_id", "referrer")
+    raw_id_fields = ("user",)
 
 
 class CommentAdmin(admin.ModelAdmin):
@@ -118,6 +119,8 @@ class CommentAdmin(admin.ModelAdmin):
         "parent",
     )
     search_fields = ("content", "holiday__name", "user__username")
+    raw_id_fields = ("user", "holiday", "parent")
+    readonly_fields = ("votes", "reports", "edited", "timestamp", "content")
 
 
 class HolidayVotesAdmin(admin.ModelAdmin):
