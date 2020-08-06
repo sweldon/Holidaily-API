@@ -12,6 +12,9 @@ from api.models import (
     Holiday,
 )
 from holidaily.settings import SLACK_CLIENT
+import logging
+
+logger = logging.getLogger("holidaily")
 
 
 def add_notification(
@@ -73,15 +76,17 @@ def send_push_to_user(
                 message={"title": title, "body": body}, extra=extra_data, badge=unread,
             )
         except APNSServerError as e:
-            print(f"[ERROR] Could not send push to iOS user {user.username}: {e}")
+            logger.error(
+                f"[PUSH ERROR] Could not send push to iOS user {user.username}: {e}"
+            )
             return False
     else:
         push_sent = device.send_message(
             body, title=title, badge=unread, extra=extra_data
         )
         if not push_sent.get("success"):
-            print(
-                f"[ERROR] Could not send push to Android user {user.username}: {push_sent.get('results')}"
+            logger.error(
+                f"[PUSH ERROR] Could not send push to Android user {user.username}: {push_sent.get('results')}"
             )
             return False
     return True

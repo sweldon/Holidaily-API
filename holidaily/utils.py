@@ -55,10 +55,6 @@ def sync_devices(registration_id, platform, user=None):
         existing_device = device_class.objects.filter(user=user).last()
         if existing_device:
             if existing_device.registration_id != registration_id:
-                print(
-                    f"Updating {platform} device id for user {user.username} from "
-                    f"{existing_device.registration_id } to {registration_id}"
-                )
                 existing_device.registration_id = registration_id
                 existing_device.active = True
                 existing_device.save()
@@ -73,13 +69,11 @@ def sync_devices(registration_id, platform, user=None):
                 registration_id=registration_id, user__isnull=True
             ).last()
             if unassigned_device:
-                print("assigning unassigned device")
                 # Replace unassigned device with logged in user
                 unassigned_device.user = user
                 unassigned_device.active = True
                 unassigned_device.save()
             else:
-                print("creating new device")
                 if platform == ANDROID:
                     device_class.objects.create(
                         registration_id=registration_id,

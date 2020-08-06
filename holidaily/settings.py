@@ -230,3 +230,23 @@ TWITTER_CLIENT = twitter.Api(
     access_token_secret=TWITTER_ACCESS_SECRET,
     tweet_mode="extended",
 )
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "WARNING",
+            "class": "logging.FileHandler",
+            "filename": "holidaily.log",
+        },
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "holidaily": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": True,
+        },
+    },
+}
