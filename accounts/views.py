@@ -22,7 +22,8 @@ from holidaily.settings import (
     EMAIL_HOST,
     VALIDATE_EMAIL,
 )
-from holidaily.utils import send_slack, sync_devices
+from holidaily.utils import sync_devices
+from holidaily.helpers.notification_helpers import send_slack
 from validate_email import validate_email
 from django.utils import timezone
 

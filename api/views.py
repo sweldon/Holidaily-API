@@ -6,7 +6,12 @@ from elasticsearch_dsl import Search
 from push_notifications.models import APNSDevice, GCMDevice
 from rest_framework.decorators import api_view
 
-from holidaily.utils import send_slack, sync_devices, send_push_to_user, normalize_time
+from holidaily.helpers.notification_helpers import (
+    add_notification,
+    send_push_to_user,
+    send_slack,
+)
+from holidaily.utils import sync_devices, normalize_time
 from .models import (
     Holiday,
     UserHolidayVotes,
@@ -65,26 +70,6 @@ from holidaily.settings import (
     TWEET_INDEX_NAME,
 )
 import html
-
-
-def add_notification(n_id, n_type, user, content, title):
-    """
-    Add a new notification for users
-    :param n_id: notification id, pk
-    :param n_type: notification type
-    :param user: user to receive notification
-    :param content: body of notification
-    :param title: title of notification
-    :return: the new notification
-    """
-    new_notification = UserNotifications.objects.create(
-        notification_id=n_id,
-        notification_type=n_type,
-        user=user,
-        content=content,
-        title=title,
-    )
-    return new_notification
 
 
 class UserList(APIView):
@@ -355,7 +340,7 @@ class UserHolidays(HolidayList):
                 description = request.POST.get("description", None)
                 date = request.POST.get("date", None)
                 date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
-                Holiday.objects.create(
+                holiday = Holiday.objects.create(
                     name=submission,
                     description=description,
                     date=date_formatted,
@@ -363,7 +348,8 @@ class UserHolidays(HolidayList):
                     active=False,
                 )
                 send_slack(
-                    f"[*USER HOLIDAY SUBMISSION*] _{username}_ has submitted a new holiday: *{submission}*."
+                    f"[*USER HOLIDAY SUBMISSION*] *{username}* has submitted *{submission}*\n"
+                    f"- Link: https://holidailyapp.com/admin/api/holiday/{holiday.id}/"
                 )
                 results = {
                     "message": "Holiday submitted for review",
@@ -533,8 +519,8 @@ class CommentDetail(APIView):
             if block:
                 user_profile.blocked_users.add(comment.user)
             send_slack(
-                f"[*REPORT RECEIVED*] _{username}_ has submitted a report for a comment by _{comment.user}_,"
-                f" on _{comment.holiday.name}_. See comment below.\n"
+                f"[*REPORT RECEIVED*] *{username}* has submitted a report for a comment by *{comment.user}*,"
+                f" on *{comment.holiday.name}*. See comment below.\n"
                 f"```{comment.content}```\n"
                 f"- Link to comment in Admin: https://holidailyapp.com/admin/api/comment/{comment.id}/"
             )
@@ -672,26 +658,19 @@ class CommentList(generics.GenericAPIView):
                     # Get user profiles, exclude self if user mentions themself for some reason
                     user_to_notify = User.objects.filter(username=user_mention).first()
                     if user_to_notify:
-                        UserNotifications.objects.create(
-                            notification_id=new_comment.pk,
-                            notification_type=COMMENT_NOTIFICATION,
-                            user=user_to_notify,
-                            content=content,
-                            title=f"{username} on {holiday.name}",
+                        add_notification(
+                            new_comment.pk,
+                            COMMENT_NOTIFICATION,
+                            user_to_notify,
+                            content,
+                            f"{username} on {holiday.name}",
                         )
-                        # notifications.append(n)
-                        try:
-                            send_push_to_user(
-                                user_to_notify,
-                                f"{username} mentioned you!",
-                                f"{content[:50]}{'...' if len(content) > 50 else ''}",
-                                new_comment,
-                            )
-                        except:  # noqa
-                            print(
-                                f"Error sending push, bad device token for {user_to_notify}"
-                            )
-                # UserNotifications.objects.bulk_create(notifications)
+                        send_push_to_user(
+                            user_to_notify,
+                            f"{username} mentioned you on {holiday.name}",
+                            f"{content[:100]}{'...' if len(content) > 100 else ''}",
+                            new_comment,
+                        )
                 results = {"status": HTTP_200_OK, "message": "OK"}
                 return Response(results)
             else:
