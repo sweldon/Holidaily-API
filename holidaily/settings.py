@@ -234,11 +234,15 @@ TWITTER_CLIENT = twitter.Api(
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "{levelname} {asctime} {module} {message}", "style": "{"},
+    },
     "handlers": {
         "file": {
             "level": "WARNING",
             "class": "logging.FileHandler",
             "filename": os.path.join(BASE_DIR, "holidaily.log"),
+            "formatter": "simple",
         },
         "console": {"class": "logging.StreamHandler"},
     },

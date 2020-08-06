@@ -76,9 +76,7 @@ def send_push_to_user(
                 message={"title": title, "body": body}, extra=extra_data, badge=unread,
             )
         except APNSServerError as e:
-            logger.error(
-                f"[PUSH ERROR] Could not send push to iOS user {user.username}: {e}"
-            )
+            logger.error(msg=f"Could not send push to iOS user {user.username}: {e}")
             return False
     else:
         push_sent = device.send_message(
@@ -86,7 +84,7 @@ def send_push_to_user(
         )
         if not push_sent.get("success"):
             logger.error(
-                f"[PUSH ERROR] Could not send push to Android user {user.username}: {push_sent.get('results')}"
+                msg=f"Could not send push to Android user {user.username}: {push_sent.get('results')}"
             )
             return False
     return True
