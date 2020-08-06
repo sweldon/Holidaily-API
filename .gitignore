@@ -105,3 +105,5 @@ venv.bak/
 
 .idea/*
 *.p8
+
+*.DS_Store

@@ -112,19 +112,30 @@ class Holiday(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     votes = models.IntegerField(default=0)
-    push = models.TextField(null=True, blank=True)
-    image = models.TextField(null=True)
+    push = models.TextField(
+        null=True, blank=True, help_text="Push notification message sent out to users"
+    )
+    image = models.TextField(null=True, help_text="Paste in URL to image for upload")
     image_name = models.CharField(max_length=100, default=None, null=True, blank=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted
     creator = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
-    active = models.BooleanField(default=True)
-    blurb = models.TextField(null=True)
+    active = models.BooleanField(
+        default=True,
+        help_text="Will holiday appear in the app. If false, will still appear if no creator",
+    )
+    blurb = models.TextField(
+        null=True, help_text="Short description appearing in Holiday list"
+    )
     IMAGE_FORMATS = (("jpeg", "jpeg"), ("png", "png"))
     image_format = models.CharField(
         max_length=10, choices=IMAGE_FORMATS, default="jpeg"
     )
     created = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    creator_awarded = models.BooleanField(
+        default=False,
+        help_text="Has user already been sent a push notification and awarded confetti",
+    )
 
     @property
     def num_comments(self):
@@ -177,8 +188,6 @@ class Holiday(models.Model):
                             Key=new_image_name, Body=image_data
                         )
                         self.image_name = new_image_name
-                    else:
-                        print(f"Image is the same with hash {image_hash}")
                 except Exception as e:  # noqa
                     print(f"Could not save image: {e}")
         super(Holiday, self).save(*args, **kwargs)

@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.forms import Textarea
+
+from holidaily.helpers.notification_helpers import award_and_notify_user_for_holiday
 from .models import (
     UserProfile,
     Holiday,
@@ -36,7 +38,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "creator__username",
     )
     ordering = ("-created",)
-    readonly_fields = ("get_image", "created")
+    readonly_fields = ("get_image", "created", "votes")
     fields = (
         "name",
         "date",
@@ -50,10 +52,21 @@ class HolidayAdmin(admin.ModelAdmin):
         "votes",
         "creator",
         "created",
+        "creator_awarded",
     )
     formfield_overrides = {
         models.CharField: {"widget": Textarea(attrs={"rows": 4, "cols": 99})},
     }
+
+    def save_model(self, request, obj, form, change):
+        super(HolidayAdmin, self).save_model(request, obj, form, change)
+        if (
+            "active" in form.changed_data
+            and obj.active
+            and obj.creator
+            and not obj.creator_awarded
+        ):
+            award_and_notify_user_for_holiday(obj)
 
 
 class UserProfileAdmin(admin.ModelAdmin):

@@ -55,5 +55,8 @@ DEFAULT_SLACK_CHANNEL = "holidaily-updates"
 ANDROID = "android"
 IOS = "ios"
 
+# Confetti to be awarded for accepted holiday submission
+HOLIDAY_SUBMISSION_REWARD = 15
+
 ANDROID_VERSION = "1.4.2"
 IOS_VERSION = "1.4.2"
