@@ -4,6 +4,7 @@ from elasticsearch import RequestError
 from elasticsearch.client import IndicesClient
 from elasticsearch_dsl import Search
 
+from api.constants import HOLIDAILY_TRENDS
 from api.models import Holiday
 from holidaily.settings import ES_CLIENT, TWEET_INDEX_NAME, TWITTER_CLIENT
 
@@ -14,7 +15,6 @@ class Command(BaseCommand):
         parser.add_argument(
             "--images_only", dest="images_only", default=False, action="store_true"
         )
-        parser.add_argument("--tweet_type")
         parser.add_argument(
             "--full_day", dest="full_day", default=False, action="store_true"
         )
@@ -101,7 +101,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         recreate = options.get("recreate_index")
         images_only = options.get("images_only")
-        tweet_type = options.get("tweet_type")
         full_day = options.get("full_day")
 
         # Run at midnight, and delete all tweets for next day
@@ -116,6 +115,9 @@ class Command(BaseCommand):
             cleaned_name = h.name.replace(" ", "").replace("'", "").replace("-", "")
             hashtag = f"#{cleaned_name}"
             hashtags.append(hashtag)
+
+        hashtags += HOLIDAILY_TRENDS
+
         last_indexed_tweet = None
         since_date = None
 
@@ -149,9 +151,13 @@ class Command(BaseCommand):
         images_only = "filter:images" if images_only else ""
         for trend in hashtags:
             search_str_filtered = f"{trend} filter:safe -filter:retweets {images_only}"
+            tweet_type = "popular"
+            if trend in HOLIDAILY_TRENDS:
+                tweet_type = "recent"
+                search_str_filtered += "-brew -brewery -beer"
             trend_results = TWITTER_CLIENT.GetSearch(
                 term=search_str_filtered,
-                result_type=tweet_type if tweet_type else "mixed",
+                result_type=tweet_type,
                 return_json=True,
                 count=50,
                 lang="en",

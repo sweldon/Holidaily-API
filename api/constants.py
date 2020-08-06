@@ -60,3 +60,12 @@ HOLIDAY_SUBMISSION_REWARD = 15
 
 ANDROID_VERSION = "1.4.3"
 IOS_VERSION = "1.4.3"
+
+HOLIDAILY_TRENDS = [
+    "#holidaily",
+    "#holidailyapp",
+    "holidaily",
+    "holidailyapp",
+    "holidailyapp.com",
+    "@holidaily_app",
+]
