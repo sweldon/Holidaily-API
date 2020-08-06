@@ -238,7 +238,7 @@ LOGGING = {
         "file": {
             "level": "WARNING",
             "class": "logging.FileHandler",
-            "filename": "holidaily.log",
+            "filename": os.path.join(BASE_DIR, "holidaily.log"),
         },
         "console": {"class": "logging.StreamHandler"},
     },
