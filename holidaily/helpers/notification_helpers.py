@@ -96,7 +96,7 @@ def award_and_notify_user_for_holiday(holiday: Holiday):
     user_profile = UserProfile.objects.filter(user=creator).first()
     if not user_profile:
         return
-    user_profile.rewards += HOLIDAY_SUBMISSION_REWARD
+    user_profile.confetti += HOLIDAY_SUBMISSION_REWARD
     user_profile.save()
 
     push_title = "Holiday Approved"
