@@ -94,11 +94,11 @@ def send_slack(message: str, channel: str = DEFAULT_SLACK_CHANNEL):
     SLACK_CLIENT.chat_postMessage(channel=f"#{channel}", text=message)
 
 
-def award_and_notify_user_for_holiday(holiday: Holiday):
+def award_and_notify_user_for_holiday(holiday: Holiday) -> bool:
     creator = holiday.creator
     user_profile = UserProfile.objects.filter(user=creator).first()
     if not user_profile:
-        return
+        return False
     user_profile.confetti += HOLIDAY_SUBMISSION_REWARD
     user_profile.save()
 
@@ -109,3 +109,5 @@ def award_and_notify_user_for_holiday(holiday: Holiday):
     if push_sent:
         holiday.creator_awarded = True
         holiday.save()
+        return True
+    return False

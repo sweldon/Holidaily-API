@@ -19,7 +19,6 @@ from .models import (
     UserNotifications,
     UserCommentVotes,
     UserProfile,
-    S3_CLIENT,
 )
 from .serializers import (
     UserSerializer,
@@ -63,13 +62,8 @@ from api.constants import (
 )
 from api.exceptions import RequestError, DeniedError
 import re
-from holidaily.settings import (
-    COMMENT_PAGE_SIZE,
-    UPDATE_ALERT,
-    ES_CLIENT,
-    TWEET_INDEX_NAME,
-)
 import html
+from django.conf import settings
 
 
 class UserList(APIView):
@@ -174,7 +168,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             version = request.POST.get("version", None)
             platform = request.POST.get("platform", None)
             requires_update = False
-            if UPDATE_ALERT:
+            if settings.UPDATE_ALERT:
                 if platform == ANDROID and version != ANDROID_VERSION:
                     requires_update = True
                 elif platform == IOS and version != IOS_VERSION:
@@ -222,7 +216,9 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
 
         elif avatar:
             file_name = f"{username}_{avatar}"
-            S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(Key=file_name, Body=avatar)
+            settings.S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                Key=file_name, Body=avatar
+            )
             profile.profile_image = file_name
             profile.avatar_approved = False
             profile.save()
@@ -391,7 +387,7 @@ class HolidayDetail(APIView):
                 holiday.votes -= 1
             else:
                 raise RequestError("Invalid vote type")
-            holiday.save(from_app=True)
+            holiday.save()
             user_vote, created = UserHolidayVotes.objects.get_or_create(
                 user__username=username,
                 holiday=holiday,
@@ -680,14 +676,14 @@ class CommentList(generics.GenericAPIView):
 
         elif holiday:
             page = int(request.POST.get("page", 0))
-            chunk = page * COMMENT_PAGE_SIZE
+            chunk = page * settings.COMMENT_PAGE_SIZE
             comment_list = []
             # All the parents with no children
             comments = (
                 Holiday.objects.get(id=holiday)
                 .comment_set.filter(parent__isnull=True)
                 .order_by("-votes", "-id")
-            )[chunk : chunk + COMMENT_PAGE_SIZE]
+            )[chunk : chunk + settings.COMMENT_PAGE_SIZE]
             for c in comments:
                 comment_group = [c]
                 if c.comment_set.all().count() > 0:
@@ -820,7 +816,9 @@ class UserNotificationsView(generics.GenericAPIView):
 def tweets_view(request):
     page = int(request.GET.get("page", 0))
     TWEET_PAGE_SIZE = 30
-    s = Search(using=ES_CLIENT, index=TWEET_INDEX_NAME).sort("-twitter_id")
+    s = Search(using=settings.ES_CLIENT, index=settings.TWEET_INDEX_NAME).sort(
+        "-twitter_id"
+    )
     # total = s.count()
     chunk = page * TWEET_PAGE_SIZE
     # s = s[0:total]
