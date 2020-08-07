@@ -48,8 +48,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "creator__username",
     )
     ordering = ("-created",)
-    readonly_fields = ("get_image", "created", "votes", "creator_awarded")
-    raw_id_fields = ("creator",)
+    readonly_fields = ("get_image", "created", "votes", "creator_awarded", "creator")
     fields = (
         "name",
         "date",
