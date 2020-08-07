@@ -1,17 +1,10 @@
-import hashlib
-from builtins import Exception
-
-import boto3
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
 
-from api.constants import (
-    S3_BUCKET_IMAGES,
-    S3_BUCKET_NAME,
-)
+from api.constants import S3_BUCKET_IMAGES
 from holidaily.settings import (
     HOLIDAY_IMAGE_WIDTH,
     HOLIDAY_IMAGE_HEIGHT,
@@ -19,9 +12,6 @@ from holidaily.settings import (
 from holidaily.utils import normalize_time
 import humanize
 from django.utils import timezone
-import requests
-from PIL import Image
-from io import BytesIO
 
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
@@ -36,8 +26,6 @@ VOTE_CHOICES = (
     (5, "down_from_up"),
 )
 NOTIFICATION_TYPES = ((0, "comment"), (1, "news"), (2, "holiday"))
-S3_CLIENT = boto3.resource("s3")
-CF_CLIENT = boto3.client("cloudfront")
 
 
 class UserProfile(models.Model):
@@ -167,30 +155,6 @@ class Holiday(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        from_app = kwargs.pop("from_app", None)
-        if not from_app:
-            if self.image:
-                try:
-                    image_data = requests.get(self.image).content
-                    image_object = Image.open(BytesIO(image_data))
-                    byte_arr = BytesIO()
-                    image_object.save(byte_arr, format=self.image_format)
-                    image_data = byte_arr.getvalue()
-                    image_hash = hashlib.md5(image_data).hexdigest()
-                    image_suffix = f"-{image_hash}.{self.image_format}"
-                    if not self.image_name or not self.image_name.endswith(
-                        image_suffix
-                    ):
-                        new_image_name = f"{self.name.strip().replace(' ', '-')}-{image_hash}.{self.image_format}"
-                        S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
-                            Key=new_image_name, Body=image_data
-                        )
-                        self.image_name = new_image_name
-                except Exception as e:  # noqa
-                    print(f"Could not save image: {e}")
-        super(Holiday, self).save(*args, **kwargs)
 
 
 class Comment(models.Model):
