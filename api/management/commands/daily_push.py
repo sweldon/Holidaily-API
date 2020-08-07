@@ -64,3 +64,7 @@ class Command(BaseCommand):
             badge=1,
             extra={"holiday_id": id, "holiday_name": day_name, "push_type": "holiday"},
         )
+
+        # Delete invalid devices
+        GCMDevice.objects.filter(active=False).delete()
+        APNSDevice.objects.filter(active=False).delete()
