@@ -122,8 +122,10 @@ class Command(BaseCommand):
         since_date = None
 
         if full_day:
-            since_date = timezone.now().strftime("%Y-%m-%d")
-            print(f"Getting tweets for entire day {since_date}")
+            from datetime import timedelta
+
+            since_date = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+            print(f"Backfilling tweets since {since_date}")
 
         if not recreate and not full_day:
             try:
@@ -154,7 +156,9 @@ class Command(BaseCommand):
             tweet_type = "popular"
             if trend in HOLIDAILY_TRENDS:
                 tweet_type = "recent"
-                search_str_filtered += "-brew -brewery -beer"
+                search_str_filtered += (
+                    "-brew -brewery -brewing -holidailybrew -ghostfish"
+                )
             trend_results = TWITTER_CLIENT.GetSearch(
                 term=search_str_filtered,
                 result_type=tweet_type,

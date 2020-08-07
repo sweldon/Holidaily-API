@@ -77,6 +77,7 @@ def send_push_to_user(
             )
         except APNSServerError as e:
             logger.error(msg=f"Could not send push to iOS user {user.username}: {e}")
+            device.delete()
             return False
     else:
         push_sent = device.send_message(
@@ -86,6 +87,7 @@ def send_push_to_user(
             logger.error(
                 msg=f"Could not send push to Android user {user.username}: {push_sent.get('results')}"
             )
+            device.delete()
             return False
     return True
 
