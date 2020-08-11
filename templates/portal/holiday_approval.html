@@ -1,0 +1,105 @@
+{% autoescape off %}
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Holidaily</title>
+        <style>
+            body{
+                background-color: #F0F0F0;
+                font-family: Arial;
+            }
+            #container{
+                margin: 0 auto;
+                background-color: #FFFFFF;
+                padding: 25px;
+                border-radius: 3px;
+            }
+            #content{
+                color: #212121;
+                padding: 15px 0 0 0;
+            }
+            #footer{
+                padding: 20px 20px 0px 20px;
+                border-top: 1px solid #A9A9A9;
+                text-align: center;
+            }
+
+            #sig{
+                padding: 25px;
+            }
+            #text{
+                background-color: #FCFCFC;
+                border: 1px solid #EDEDED;
+                padding: 15px;
+            }
+
+            .bold-text{
+                font-weight: bold;
+                color: #4c96e8;
+            }
+            #view-button{
+                text-align: center;
+                cursor: pointer;
+                border: 1px solid #88ACE0;
+                padding: 10px 15px 10px 15px;
+            }
+            .holiday-image{
+                height: 150px;
+            }
+            table{
+                border: 1px;
+            }
+            td{
+                vertical-align: top;
+                padding: 15px 5px 5px 5px;
+            }
+            #unsub-link{
+                font-size: 10pt;
+                text-decoration: underline;
+                opacity: .8;
+            }
+
+        </style>
+    </head>
+    <body>
+
+    <div id="container">
+        <div style="text-align: center;">
+            <img src="https://holidailyapp.com/static/base/img/holidaily-banner-2.png"  width="300">
+        </div>
+        <div id="content">
+            <div id="text">
+                Hey {{ user.username }}, your holiday <span class="bold-text">{{ holiday.name }}</span> has been approved and you have been awarded <span class="bold-text">{{ award }}</span> confetti! Thanks so much for your contribution to Holidaily.
+            </div>
+
+            <table>
+                <tr>
+                    <td>
+                        <img class="holiday-image" src="{{ holiday.image }}" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div id="view-button">
+                            <span class="bold-text"><a style="text-decoration: none; color: #4c96e8" href="https://holidailyapp.com/holiday?id={{ holiday.id }}">View in Holidaily</a></span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div id="sig">
+            Best, <br />
+            The Holidaily Team
+            </div>
+
+        </div>
+
+        <div id="footer">
+            <div id="unsub-link"><a href="{{ unsubscribe_link }}" style="text-decoration: none; color: black;">Unsubscribe from email notifications</a></div>
+            <div style="padding:15px 5px 0px 5px; font-size: 10pt">© 2020 Crater Applications</div>
+        </div>
+    </div>
+
+    </body>
+    </html>
+{% endautoescape %}

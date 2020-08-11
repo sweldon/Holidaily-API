@@ -92,6 +92,9 @@ def send_email_to_user(
         if approval:
             subject = "Holiday Approved"
             template = "portal/holiday_approval.html"
+            email_data["holiday"] = notif_obj
+            email_data["user"] = user
+            email_data["award"] = HOLIDAY_SUBMISSION_REWARD
         else:
             return False
     else:
@@ -181,6 +184,9 @@ def award_and_notify_user_for_holiday(holiday: Holiday) -> bool:
         holiday.save()
         return True
     else:
-        # TODO send email
-        pass
+        email_sent = send_email_to_user(creator, holiday, approval=True)
+        if email_sent:
+            holiday.creator_awarded = True
+            holiday.save()
+            return True
     return False
