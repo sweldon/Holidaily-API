@@ -235,7 +235,10 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "simple": {"format": "{levelname} {asctime} {module} {message}", "style": "{"},
+        "simple": {
+            "format": "{levelname} {asctime} {module} {funcName} {lineno} {message}",
+            "style": "{",
+        },
     },
     "handlers": {
         "file": {
