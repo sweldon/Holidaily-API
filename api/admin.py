@@ -95,7 +95,7 @@ class HolidayAdmin(admin.ModelAdmin):
                 messages.add_message(
                     request,
                     messages.WARNING,
-                    f"Holiday approved, {obj.creator.username} was notified via email (device could not be reached)",
+                    f"Holiday approved, but {obj.creator.username} could not be reached for notification",
                 )
 
         if "image" in form.changed_data:
