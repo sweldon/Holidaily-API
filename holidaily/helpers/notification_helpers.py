@@ -62,7 +62,7 @@ def send_email_to_user(
 
     if isinstance(notif_obj, UserNotifications):
         if notif_obj.notification_type == COMMENT_NOTIFICATION:
-            comment = Comment.objects.filter(id=notif_obj.id).first()
+            comment = Comment.objects.filter(id=notif_obj.notification_id).first()
             if not comment:
                 return False
 
