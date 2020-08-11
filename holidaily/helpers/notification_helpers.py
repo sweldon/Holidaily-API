@@ -1,10 +1,17 @@
 from typing import Union
 
 from django.contrib.auth.models import User
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from push_notifications.apns import APNSServerError
 from push_notifications.models import APNSDevice, GCMDevice
 
-from api.constants import IOS, DEFAULT_SLACK_CHANNEL, HOLIDAY_SUBMISSION_REWARD
+from api.constants import (
+    IOS,
+    DEFAULT_SLACK_CHANNEL,
+    HOLIDAY_SUBMISSION_REWARD,
+    COMMENT_NOTIFICATION,
+)
 from api.models import (
     UserProfile,
     Comment,
@@ -39,9 +46,70 @@ def add_notification(
     return new_notification
 
 
+def send_email_to_user(
+    user: User, notif_obj: Union[UserNotifications, Holiday], **kwargs
+) -> bool:
+    """ Send an email to a user. Returns True if success, False otherwise. """
+    email_data = {
+        "unsubscribe_link": f"https://holidailyapp.com/portal/unsubscribe/?user={user.username}"
+    }
+    profile = UserProfile.objects.filter(
+        user=user, logged_out=False, emails_enabled=True
+    ).first()
+
+    if not profile:
+        return False
+
+    if isinstance(notif_obj, UserNotifications):
+        if notif_obj.notification_type == COMMENT_NOTIFICATION:
+            comment = Comment.objects.filter(id=notif_obj.id).first()
+            if not comment:
+                return False
+
+            author = comment.user
+            author_profile = UserProfile.objects.filter(user=author).first()
+            if not author_profile:
+                logger.error(f"User for notification has no profile: {author.username}")
+                return False
+
+            author_avatar = (
+                author_profile.avatar_s3_path
+                if author_profile.avatar_s3_path and author_profile.avatar_approved
+                else f"https://holidailyapp.com/static/base/img/default_user_128.png"
+            )
+            subject = f"{author} mentioned you"
+            template = "portal/notification_reminder.html"
+            email_data["user"] = user
+            email_data["author"] = author
+            email_data["icon"] = author_avatar
+            email_data["comment"] = comment
+            email_data["holiday"] = comment.holiday
+        else:
+            return False
+
+    elif isinstance(notif_obj, Holiday):
+        approval = kwargs.get("approval", False)
+        if approval:
+            subject = "Holiday Approved"
+            template = "portal/holiday_approval.html"
+        else:
+            return False
+    else:
+        return False
+
+    mail_subject = subject
+    html_message = render_to_string(template, email_data)
+    activation_email = EmailMultiAlternatives(mail_subject, to=[user.email])
+    activation_email.attach_alternative(html_message, "text/html")
+    activation_email.send(fail_silently=False)
+    return True
+
+
 def send_push_to_user(
     user: User, title: str, body: str, notif_obj: Union[Comment, Holiday]
 ) -> bool:
+    """ Send push notification to a user. Returns True if success, False otherwise. """
+
     extra_data = {}
     profile = UserProfile.objects.filter(user=user, logged_out=False).first()
     if not profile:
@@ -112,4 +180,7 @@ def award_and_notify_user_for_holiday(holiday: Holiday) -> bool:
         holiday.creator_awarded = True
         holiday.save()
         return True
+    else:
+        # TODO send email
+        pass
     return False

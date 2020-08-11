@@ -1,6 +1,12 @@
 from __future__ import unicode_literals
 from django.conf.urls import url
-from portal.views import activate, recover, password_reset_complete, password_reset_page
+from portal.views import (
+    activate,
+    recover,
+    password_reset_complete,
+    password_reset_page,
+    unsubscribe,
+)
 
 urlpatterns = [
     url(
@@ -19,4 +25,5 @@ urlpatterns = [
         password_reset_complete,
         name="password_reset_complete",
     ),
+    url(r"^unsubscribe/$", unsubscribe, name="unsubscribe",),
 ]
