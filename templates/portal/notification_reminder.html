@@ -33,9 +33,15 @@
                 padding: 15px;
             }
 
-            #author{
+            .bold-text{
                 font-weight: bold;
                 color: #4c96e8;
+            }
+            #view-button{
+                text-align: center;
+                cursor: pointer;
+                border: 1px solid #88ACE0;
+                padding: 10px 15px 10px 15px;
             }
             .avatar-icon{
                 border-radius: 50%;
@@ -54,10 +60,7 @@
                 text-decoration: underline;
                 opacity: .8;
             }
-            a{
-                text-decoration: none;
-                color: black;
-            }
+
         </style>
     </head>
     <body>
@@ -68,13 +71,20 @@
         </div>
         <div id="content">
             <div id="text">
-            Hey {{ user.username }}, <span id="author">{{ author.username }}</span> mentioned you on {{ holiday.name }}!
+            Hey {{ user.username }}, <span class="bold-text">{{ author.username }}</span> mentioned you on {{ holiday.name }}!
             </div>
 
             <table>
                 <tr>
                     <td><img class="avatar-icon" src="{{ icon }}" /></td>
                     <td><div id="comment-content">{{ comment.content }}</div></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <div id="view-button">
+                            <span class="bold-text"><a style="text-decoration: none; color: #4c96e8" href="https://holidailyapp.com/holiday?id={{ holiday.id }}">View in Holidaily</a></span>
+                        </div>
+                    </td>
                 </tr>
             </table>
 
@@ -86,7 +96,7 @@
         </div>
 
         <div id="footer">
-            <div id="unsub-link"><a href="{{ unsubscribe_link }}">Unsubscribe from email notifications</a></div>
+            <div id="unsub-link"><a href="{{ unsubscribe_link }}" style="text-decoration: none; color: black;">Unsubscribe from email notifications</a></div>
             <div style="padding:15px 5px 0px 5px; font-size: 10pt">© 2020 Crater Applications</div>
         </div>
     </div>
