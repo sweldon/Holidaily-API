@@ -18,6 +18,8 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 
+from api.models import UserProfile
+
 
 class TokenGenerator(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
@@ -30,6 +32,24 @@ class TokenGenerator(PasswordResetTokenGenerator):
 
 def index(request):
     return render(request, "portal/applink.html")
+
+
+def unsubscribe(request):
+    username = request.GET.get("user")
+    user = User.objects.filter(username=username).first()
+    profile = UserProfile.objects.filter(user=user).first()
+    if not user:
+        status, message = 404, "User does not exist"
+    elif not profile:
+        status, message = 404, "Profile does not exist"
+    else:
+        profile.emails_enabled = False
+        profile.save()
+        status, message = 200, "You have been successfully unsubscribed!"
+
+    return render(
+        request, "portal/unsubscribe.html", {"status": status, "message": message}
+    )
 
 
 def activate(request, uidb64, token):

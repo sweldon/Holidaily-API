@@ -51,6 +51,12 @@ class UserProfile(models.Model):
     last_launched = models.DateTimeField(blank=True, null=True)
     avatar_approved = models.BooleanField(default=False)
     referrer = models.CharField(max_length=50, blank=True, null=True)
+    emails_enabled = models.BooleanField(default=True)
+
+    def avatar_s3_path(self):
+        if not self.profile_image:
+            return None
+        return f"{S3_BUCKET_IMAGES}/{self.profile_image}"
 
     def avatar_preview(self):
         return (

@@ -95,8 +95,7 @@ class HolidayAdmin(admin.ModelAdmin):
                 messages.add_message(
                     request,
                     messages.WARNING,
-                    f"Holiday was approved, but {obj.creator.username} was not notified as their device could not be "
-                    f"reached.",
+                    f"Holiday approved, {obj.creator.username} was notified via email (device could not be reached)",
                 )
 
         if "image" in form.changed_data:
@@ -158,6 +157,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "avatar_full",
         "avatar_approved",
         "referrer",
+        "emails_enabled",
     )
     readonly_fields = ("avatar_full", "device_id", "referrer")
     raw_id_fields = ("user",)
