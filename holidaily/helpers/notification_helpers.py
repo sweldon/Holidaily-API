@@ -137,6 +137,8 @@ def send_push_to_user(
     device_class = APNSDevice if platform == IOS else GCMDevice
     device = device_class.objects.filter(user=user).last()
     if not device:
+        profile.device_active = False
+        profile.save()
         return False
 
     unread = UserNotifications.objects.filter(user=user, read=False).count()
@@ -149,6 +151,8 @@ def send_push_to_user(
         except APNSServerError as e:
             logger.error(msg=f"Could not send push to iOS user {user.username}: {e}")
             device.delete()
+            profile.device_active = False
+            profile.save()
             return False
     else:
         push_sent = device.send_message(
@@ -159,6 +163,8 @@ def send_push_to_user(
                 msg=f"Could not send push to Android user {user.username}: {push_sent.get('results')}"
             )
             device.delete()
+            profile.device_active = False
+            profile.save()
             return False
     return True
 
