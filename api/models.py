@@ -52,6 +52,7 @@ class UserProfile(models.Model):
     avatar_approved = models.BooleanField(default=False)
     referrer = models.CharField(max_length=50, blank=True, null=True)
     emails_enabled = models.BooleanField(default=True)
+    device_active = models.BooleanField(default=True)
 
     def avatar_s3_path(self):
         if not self.profile_image:

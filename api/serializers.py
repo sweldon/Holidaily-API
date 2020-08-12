@@ -77,6 +77,7 @@ class UserSerializer(serializers.ModelSerializer):
     approved_holidays = serializers.SerializerMethodField()
     last_online = serializers.SerializerMethodField()
     num_comments = serializers.SerializerMethodField()
+    device_active = serializers.SerializerMethodField()
 
     def get_is_premium(self, obj):
         return UserProfile.objects.get(user=obj).premium
@@ -108,6 +109,9 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    def get_device_active(self, obj):
+        return UserProfile.objects.get(user=obj).device_active
+
     class Meta:
         model = User
         fields = (
@@ -121,6 +125,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_online",
             "num_comments",
             "email",
+            "device_active",
         )
 
 
