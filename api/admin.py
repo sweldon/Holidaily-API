@@ -160,7 +160,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "emails_enabled",
         "device_active",
     )
-    readonly_fields = ("avatar_full", "device_id", "referrer", "device_active")
+    readonly_fields = ("avatar_full", "device_id", "referrer")
     raw_id_fields = ("user",)
 
 
