@@ -4,6 +4,7 @@ from api.constants import (
     IOS,
     ANDROID,
 )
+from api.models import UserProfile
 
 
 def normalize_time(time_ago: str, time_type: str, short=False) -> str:
@@ -84,3 +85,7 @@ def sync_devices(registration_id, platform, user=None):
                     device_class.objects.create(
                         registration_id=registration_id, user=user
                     )
+                profile = UserProfile.objects.filter(user=user).first()
+                if profile:
+                    profile.device_active = True
+                    profile.save()
