@@ -10,7 +10,9 @@ from holidaily.helpers.notification_helpers import (
     add_notification,
     send_push_to_user,
     send_slack,
+    send_email_to_user,
 )
+from holidaily.settings import EMAIL_NOTIFICATIONS_ENABLED
 from holidaily.utils import sync_devices, normalize_time
 from .models import (
     Holiday,
@@ -654,19 +656,21 @@ class CommentList(generics.GenericAPIView):
                     # Get user profiles, exclude self if user mentions themself for some reason
                     user_to_notify = User.objects.filter(username=user_mention).first()
                     if user_to_notify:
-                        add_notification(
+                        n = add_notification(
                             new_comment.pk,
                             COMMENT_NOTIFICATION,
                             user_to_notify,
                             content,
                             f"{username} on {holiday.name}",
                         )
-                        send_push_to_user(
+                        push_sent = send_push_to_user(
                             user_to_notify,
                             f"{username} mentioned you on {holiday.name}",
                             f"{content[:100]}{'...' if len(content) > 100 else ''}",
                             new_comment,
                         )
+                        if not push_sent and EMAIL_NOTIFICATIONS_ENABLED:
+                            send_email_to_user(user_to_notify, n)
                 results = {"status": HTTP_200_OK, "message": "OK"}
                 return Response(results)
             else:
