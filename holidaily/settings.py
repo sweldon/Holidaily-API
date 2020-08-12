@@ -260,3 +260,5 @@ LOGGING = {
 
 S3_CLIENT = boto3.resource("s3")
 CF_CLIENT = boto3.client("cloudfront")
+
+EMAIL_NOTIFICATIONS_ENABLED = False
