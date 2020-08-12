@@ -40,10 +40,10 @@ class UserProfile(models.Model):
     premium_state = models.TextField(blank=True, null=True)
     logged_out = models.BooleanField(default=False)
     blocked_users = models.ManyToManyField(
-        User, related_name="blocked_users", blank=True, null=True
+        User, related_name="blocked_users", blank=True
     )
     reported_comments = models.ManyToManyField(
-        "Comment", related_name="reported_comments", blank=True, null=True
+        "Comment", related_name="reported_comments", blank=True
     )
     confetti = models.IntegerField(default=0)
     platform = models.CharField(max_length=50, default=None, blank=True, null=True)

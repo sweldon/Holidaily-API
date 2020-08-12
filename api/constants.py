@@ -58,9 +58,6 @@ IOS = "ios"
 # Confetti to be awarded for accepted holiday submission
 HOLIDAY_SUBMISSION_REWARD = 15
 
-ANDROID_VERSION = "1.4.3"
-IOS_VERSION = "1.4.3"
-
 HOLIDAILY_TRENDS = [
     "#holidaily",
     "#holidailyapp",

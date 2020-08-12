@@ -262,3 +262,11 @@ S3_CLIENT = boto3.resource("s3")
 CF_CLIENT = boto3.client("cloudfront")
 
 EMAIL_NOTIFICATIONS_ENABLED = False
+
+try:
+    IOS_VERSION = os.environ["IOS_VERSION"]
+    ANDROID_VERSION = os.environ["ANDROID_VERSION"]
+except KeyError:
+    raise RuntimeError(
+        "You must set environment variables IOS_VERSION, ANDROID_VERSION"
+    )
