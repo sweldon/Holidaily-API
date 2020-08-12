@@ -4,7 +4,6 @@ from api.constants import (
     IOS,
     ANDROID,
 )
-from api.models import UserProfile
 
 
 def normalize_time(time_ago: str, time_type: str, short=False) -> str:
@@ -42,6 +41,8 @@ def normalize_time(time_ago: str, time_type: str, short=False) -> str:
 
 
 def sync_devices(registration_id, platform, user=None):
+    from api.models import UserProfile
+
     device_class = APNSDevice if platform == IOS else GCMDevice
     # If no user, log device of anonymous user to be assigned later
     if user is None:
