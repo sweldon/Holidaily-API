@@ -144,18 +144,8 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "holidailyapp@gmail.com"
 EMAIL_HOST_PASSWORD = os.environ["email_pass"]
 EMAIL_PORT = 587
-STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), "../static")
 STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/")),)
-
-# Push notifications
-APPCENTER_API_KEY = os.environ["appcenter_api"]
-PUSH_ENDPOINT_ANDROID = (
-    "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-Android-Dev/"
-    "push/notifications/"
-)
-
-PUSH_ENDPOINT_IOS = "https://api.appcenter.ms/v0.1/apps/steven.d.weldon-gmail.com/Holidaily-IOS/push/notifications"
 
 SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 
@@ -262,3 +252,11 @@ S3_CLIENT = boto3.resource("s3")
 CF_CLIENT = boto3.client("cloudfront")
 
 EMAIL_NOTIFICATIONS_ENABLED = False
+
+try:
+    IOS_VERSION = os.environ["IOS_VERSION"]
+    ANDROID_VERSION = os.environ["ANDROID_VERSION"]
+except KeyError:
+    raise RuntimeError(
+        "You must set environment variables IOS_VERSION, ANDROID_VERSION"
+    )

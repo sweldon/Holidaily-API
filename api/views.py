@@ -12,7 +12,6 @@ from holidaily.helpers.notification_helpers import (
     send_slack,
     send_email_to_user,
 )
-from holidaily.settings import EMAIL_NOTIFICATIONS_ENABLED
 from holidaily.utils import sync_devices, normalize_time
 from .models import (
     Holiday,
@@ -55,9 +54,7 @@ from api.constants import (
     MAX_COMMENT_DEPTH,
     TRUTHY_STRS,
     REPLY_DEPTH,
-    ANDROID_VERSION,
     ANDROID,
-    IOS_VERSION,
     IOS,
     S3_BUCKET_NAME,
     CLOUDFRONT_DOMAIN,
@@ -171,9 +168,9 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             platform = request.POST.get("platform", None)
             requires_update = False
             if settings.UPDATE_ALERT:
-                if platform == ANDROID and version != ANDROID_VERSION:
+                if platform == ANDROID and version != settings.ANDROID_VERSION:
                     requires_update = True
-                elif platform == IOS and version != IOS_VERSION:
+                elif platform == IOS and version != settings.IOS_VERSION:
                     requires_update = True
             results = {"needs_update": requires_update, "status": HTTP_200_OK}
             return Response(results)
@@ -669,7 +666,7 @@ class CommentList(generics.GenericAPIView):
                             f"{content[:100]}{'...' if len(content) > 100 else ''}",
                             new_comment,
                         )
-                        if not push_sent and EMAIL_NOTIFICATIONS_ENABLED:
+                        if not push_sent and settings.EMAIL_NOTIFICATIONS_ENABLED:
                             send_email_to_user(user_to_notify, n)
                 results = {"status": HTTP_200_OK, "message": "OK"}
                 return Response(results)
