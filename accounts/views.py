@@ -10,7 +10,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils import six
+import six
 from api.serializers import UserProfileSerializer
 from api.disallowed_usernames import BAD_USERNAMES, BASIC_BAD_WORDS
 from django.contrib.auth.password_validation import validate_password

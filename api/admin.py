@@ -159,6 +159,8 @@ class UserProfileAdmin(admin.ModelAdmin):
         "referrer",
         "emails_enabled",
         "device_active",
+        "ad_last_watched",
+        "requested_confetti_alert",
     )
     readonly_fields = ("avatar_full", "device_id", "referrer")
     raw_id_fields = ("user",)

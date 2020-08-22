@@ -53,6 +53,10 @@ class UserProfile(models.Model):
     referrer = models.CharField(max_length=50, blank=True, null=True)
     emails_enabled = models.BooleanField(default=True)
     device_active = models.BooleanField(default=True)
+    ad_last_watched = models.DateTimeField(
+        blank=True, null=True, help_text="Last time the user watched a reward ad"
+    )
+    requested_confetti_alert = models.BooleanField(default=False)
 
     def avatar_s3_path(self):
         if not self.profile_image:

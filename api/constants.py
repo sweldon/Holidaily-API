@@ -66,3 +66,5 @@ HOLIDAILY_TRENDS = [
     "holidailyapp.com",
     "@holidaily_app",
 ]
+
+CONFETTI_COOLDOWN_MINUTES = 1

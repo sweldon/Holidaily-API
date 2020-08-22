@@ -47,7 +47,7 @@ def add_notification(
 
 
 def send_email_to_user(
-    user: User, notif_obj: Union[UserNotifications, Holiday], **kwargs
+    user: User, notif_obj: Union[UserNotifications, Holiday, str], **kwargs
 ) -> bool:
     """ Send an email to a user. Returns True if success, False otherwise. """
     email_data = {
@@ -97,6 +97,11 @@ def send_email_to_user(
             email_data["award"] = HOLIDAY_SUBMISSION_REWARD
         else:
             return False
+
+    elif isinstance(notif_obj, str):
+        if notif_obj == "confetti":
+            # TODO send email to user, need a new template tho
+            return False
     else:
         return False
 
@@ -109,7 +114,7 @@ def send_email_to_user(
 
 
 def send_push_to_user(
-    user: User, title: str, body: str, notif_obj: Union[Comment, Holiday]
+    user: User, title: str, body: str, notif_obj: Union[Comment, Holiday, str]
 ) -> bool:
     """ Send push notification to a user. Returns True if success, False otherwise. """
 
@@ -131,6 +136,11 @@ def send_push_to_user(
         extra_data["push_type"] = "holiday"
         extra_data["holiday_id"] = notif_obj.id
         extra_data["holiday_name"] = notif_obj.name
+    elif isinstance(notif_obj, str):
+        if notif_obj == "confetti":
+            extra_data["push_type"] = "rewards"
+        else:
+            return False
     else:
         return False
 

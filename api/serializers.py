@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from rest_framework import serializers
 
 from holidaily.utils import normalize_time
@@ -18,6 +20,7 @@ from api.constants import (
     NEWS_NOTIFICATION,
     COMMENT_NOTIFICATION,
     CLOUDFRONT_DOMAIN,
+    CONFETTI_COOLDOWN_MINUTES,
 )
 from django.utils import timezone
 import humanize
@@ -28,6 +31,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     premium = serializers.BooleanField()
     profile_image = serializers.SerializerMethodField()
     last_online = serializers.SerializerMethodField()
+    confetti_cooldown = serializers.SerializerMethodField()
 
     def get_username(self, obj):
         return obj.user.username
@@ -55,6 +59,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
         else:
             return "a while ago"
 
+    def get_confetti_cooldown(self, obj):
+        if obj.ad_last_watched:
+            unlock_time = (
+                (obj.ad_last_watched + timedelta(minutes=CONFETTI_COOLDOWN_MINUTES))
+                - timezone.now()
+            ).total_seconds()
+            if unlock_time > 0:
+                hours = int(unlock_time // 3600)
+                mins = int((unlock_time % 3600) // 60)
+                secs = int((unlock_time % 3600) % 60)
+                unlock_countdown = {
+                    "hours": hours,
+                    "minutes": mins,
+                    "seconds": secs,
+                }
+                return unlock_countdown
+        return None
+
     class Meta:
         model = UserProfile
         fields = (
@@ -66,6 +88,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "premium",
             "profile_image",
             "last_online",
+            "confetti_cooldown",
+            "requested_confetti_alert",
         )
 
 
