@@ -58,11 +58,15 @@ from api.constants import (
     IOS,
     S3_BUCKET_NAME,
     CLOUDFRONT_DOMAIN,
+    S3_BUCKET_IMAGES,
+    CONFETTI_COOLDOWN_MINUTES,
 )
 from api.exceptions import RequestError, DeniedError
 import re
 import html
 from django.conf import settings
+from api.tasks import confetti_notification
+from django.core.cache import cache
 
 
 class UserList(APIView):
@@ -161,6 +165,7 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
         logout = request.POST.get("logout", None)
         check_update = request.POST.get("check_update", None)
         avatar = request.FILES.get("file", None)
+        notify_cooldown = request.POST.get("notify_cooldown", False)
         profile = UserProfile.objects.filter(user__username=username).first()
 
         if check_update:
@@ -202,11 +207,59 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             results = {"message": "User was made premium!", "status": HTTP_200_OK}
             return Response(results)
 
+        elif notify_cooldown:
+            notify = True if notify_cooldown in TRUTHY_STRS else False
+            if notify != profile.requested_confetti_alert:
+                profile.requested_confetti_alert = notify
+                profile.save()
+
+            if notify:
+                user_id = profile.user.id
+                cache_key = f"confetti_notify_{user_id}"
+                if not cache.get(cache_key):
+                    print("queueing up task!")
+                    countdown = (
+                        (
+                            profile.ad_last_watched
+                            + timedelta(minutes=CONFETTI_COOLDOWN_MINUTES)
+                        )
+                        - timezone.now()
+                    ).total_seconds()
+                    cache.set(cache_key, 1, countdown)
+                    confetti_notification.apply_async(
+                        args=[user_id], countdown=countdown
+                    )
+
+            results = {
+                "message": f"Notify preference updated to {notify} for {username}",
+                "status": HTTP_200_OK,
+            }
+            return Response(results)
+
         elif reward:
             # User earned confetti
             reward_amount = request.POST.get("reward", None)
             profile.confetti += int(reward_amount)
+            profile.ad_last_watched = timezone.now()
             profile.save()
+
+            if profile.requested_confetti_alert:
+                user_id = profile.user.id
+                cache_key = f"confetti_notify_{user_id}"
+                if not cache.get(cache_key):
+                    print("queueing up task initially!")
+                    countdown = (
+                        (
+                            profile.ad_last_watched
+                            + timedelta(minutes=CONFETTI_COOLDOWN_MINUTES)
+                        )
+                        - timezone.now()
+                    ).total_seconds()
+                    cache.set(cache_key, 1, countdown)
+                    confetti_notification.apply_async(
+                        args=[user_id], countdown=countdown
+                    )
+
             results = {
                 "message": f"{reward_amount} confetti awarded to {username}",
                 "status": HTTP_200_OK,
@@ -332,6 +385,15 @@ class UserHolidays(HolidayList):
                 }
                 return Response(results)
             else:
+                image = request.FILES.get("file", None)
+                image_name = None
+                image_link = None
+                if image:
+                    image_name = f"{submission.strip().replace(' ', '-')}.jpeg"
+                    settings.S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                        Key=image_name, Body=image
+                    )
+                    image_link = f"{S3_BUCKET_IMAGES}/{image_name}"
                 description = request.POST.get("description", None)
                 date = request.POST.get("date", None)
                 date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
@@ -341,6 +403,8 @@ class UserHolidays(HolidayList):
                     date=date_formatted,
                     creator=User.objects.get(username=username),
                     active=False,
+                    image_name=image_name,
+                    image=image_link,
                 )
                 send_slack(
                     f"[*USER HOLIDAY SUBMISSION*] *{username}* has submitted *{submission}*\n"

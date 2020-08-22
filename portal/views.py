@@ -1,5 +1,5 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils import six
+import six
 from django.core.mail import EmailMessage
 from django.shortcuts import render
 from django.core.exceptions import ValidationError
