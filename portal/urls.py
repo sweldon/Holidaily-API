@@ -9,21 +9,17 @@ from portal.views import (
 )
 
 urlpatterns = [
-    path(
-        r"activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$",
-        activate,
-        name="activate",
-    ),
+    path(r"activate/<slug:uidb64>/<slug:token>/", activate, name="activate",),
     path(r"recover/", recover, name="recover"),
     path(
-        r"reset/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$",
+        r"reset/<slug:uidb64>/<slug:token>/",
         password_reset_page,
         name="password_reset_page",
     ),
     path(
-        r"accounts/password/done/$",
+        r"accounts/password/done/",
         password_reset_complete,
         name="password_reset_complete",
     ),
-    path(r"unsubscribe/$", unsubscribe, name="unsubscribe",),
+    path(r"unsubscribe/", unsubscribe, name="unsubscribe",),
 ]

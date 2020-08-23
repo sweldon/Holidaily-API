@@ -67,6 +67,9 @@ import html
 from django.conf import settings
 from api.tasks import confetti_notification
 from django.core.cache import cache
+import logging
+
+logger = logging.getLogger("holidaily")
 
 
 class UserList(APIView):
@@ -217,7 +220,9 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 user_id = profile.user.id
                 cache_key = f"confetti_notify_{user_id}"
                 if not cache.get(cache_key):
-                    print("queueing up task!")
+                    logger.info(
+                        f"Queueing up confetti notification from toggle (key: {cache_key})"
+                    )
                     countdown = (
                         (
                             profile.ad_last_watched
@@ -247,7 +252,9 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
                 user_id = profile.user.id
                 cache_key = f"confetti_notify_{user_id}"
                 if not cache.get(cache_key):
-                    print("queueing up task initially!")
+                    logger.info(
+                        f"Queueing up confetti notification from default (key: {cache_key})"
+                    )
                     countdown = (
                         (
                             profile.ad_last_watched

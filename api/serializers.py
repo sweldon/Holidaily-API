@@ -227,8 +227,9 @@ class HolidaySerializer(serializers.ModelSerializer):
         return f"{CLOUDFRONT_DOMAIN}/{obj.image_name}"
 
     def get_time_since(self, obj):
-        time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
-        return normalize_time(time_ago, "relative")
+        if obj.date == timezone.now().date():
+            return "Today"
+        return obj.date.strftime("%B %d, %Y")
 
     def get_celebrating(self, obj):
         username = self.context.get("username", None)
