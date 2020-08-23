@@ -232,7 +232,7 @@ LOGGING = {
     },
     "handlers": {
         "file": {
-            "level": "WARNING",
+            "level": "INFO",
             "class": "logging.FileHandler",
             "filename": os.path.join(BASE_DIR, "holidaily.log"),
             "formatter": "simple",
@@ -242,7 +242,7 @@ LOGGING = {
     "loggers": {
         "holidaily": {
             "handlers": ["file", "console"],
-            "level": "WARNING",
+            "level": "INFO",
             "propagate": True,
         },
     },
