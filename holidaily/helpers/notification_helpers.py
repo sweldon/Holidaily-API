@@ -100,8 +100,9 @@ def send_email_to_user(
 
     elif isinstance(notif_obj, str):
         if notif_obj == "confetti":
-            # TODO send email to user, need a new template tho
-            return False
+            subject = "Confetti is Ready"
+            template = "portal/rewards.html"
+            email_data["user"] = user
     else:
         return False
 
