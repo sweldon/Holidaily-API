@@ -19,3 +19,4 @@ elasticsearch==7.8.1
 elasticsearch-dsl==7.2.1
 celery==4.4.7
 redis==3.5.3
+python-memcached==1.59
