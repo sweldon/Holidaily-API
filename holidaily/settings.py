@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "easyaudit",
     "push_notifications",
     "blacklist",
+    "django_slack",
 ]
 
 MIDDLEWARE = [
@@ -147,8 +148,11 @@ EMAIL_PORT = 587
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), "../static")
 STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/")),)
 
-SLACK_CLIENT = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
-
+SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
+SLACK_CLIENT = slack.WebClient(token=SLACK_TOKEN)
+SLACK_CHANNEL = "prod-bot"
+SLACK_USERNAME = "dvnt-bot"
+SLACK_ICON_URL = "/static/base/img/holidaily-logo-1-inverted.png"
 # Supports second, minute, hour, day
 REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
@@ -224,6 +228,7 @@ TWITTER_CLIENT = twitter.Api(
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "formatters": {
         "simple": {
             "format": "{levelname} {asctime} {module} {funcName} {lineno} {message}",
@@ -238,12 +243,21 @@ LOGGING = {
             "formatter": "simple",
         },
         "console": {"class": "logging.StreamHandler"},
+        "slack_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django_slack.log.SlackExceptionHandler",
+        },
     },
     "loggers": {
         "holidaily": {
             "handlers": ["file", "console"],
             "level": "INFO",
             "propagate": True,
+        },
+        "django": {
+            "level": "ERROR" if not DEBUG else "INFO",
+            "handlers": ["slack_admins"] if not DEBUG else ["console"],
         },
     },
 }
