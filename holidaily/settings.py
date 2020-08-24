@@ -38,6 +38,7 @@ ALLOWED_HOSTS = [
     "ec2-52-6-245-91.compute-1.amazonaws.com",
     "holidailyapp.com",
     "www.holidailyapp.com",
+    "52.6.245.91",
 ]
 
 # Application definition
