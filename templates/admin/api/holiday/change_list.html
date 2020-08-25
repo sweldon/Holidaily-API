@@ -1,0 +1,8 @@
+{% extends "admin/change_list.html" %}
+{% load i18n holidaily_admin_extras %}
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="{% generate_tomorrow_link original %}" class="btn btn-high btn-success">Tomorrow</a>
+    </li>
+{% endblock %}
