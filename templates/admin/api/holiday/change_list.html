@@ -3,6 +3,9 @@
 {% block object-tools-items %}
     {{ block.super }}
     <li>
+        <a href="{% generate_today_link original %}" class="btn btn-high btn-success">Today</a>
+    </li>
+    <li>
         <a href="{% generate_tomorrow_link original %}" class="btn btn-high btn-success">Tomorrow</a>
     </li>
 {% endblock %}
