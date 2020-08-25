@@ -10,13 +10,25 @@ asdf
 {% block extrahead %}
     <link rel="icon" href="/static/base/img/favicon.ico" sizes="48x48" />
         <style>
-        .module h2, .module caption, .inline-group h2,#header{
+        .module h2, .module caption, .inline-group h2, #header{
             background-color: #4c96e8;
+            color: #FFFFFF;
         }
         a:link, a:visited {
             color: #4c96e8;
         }
-
+        div.breadcrumbs{
+            background-color: #81B5EE;
+        }
+        input[type="submit"], button {
+            background-color: #81B5EE;
+        }
+        input[type="submit"].default, .submit-row input.default {
+             background-color: #4c96e8;
+        }
+        table.caption{
+            color: #ffffff;
+        }
     </style>
 {% endblock %}
 
