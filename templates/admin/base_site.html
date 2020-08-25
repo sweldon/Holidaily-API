@@ -1,10 +1,29 @@
-{% extends "admin/base.html" %}
+{% extends "admin/base_site.html" %}
 
-{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
-
+{% block title %}Holidaily Admin{% endblock %}
+{%  block main %}
+    test
+{% endblock %}
+{% block head %}
+asdf
+{% endblock %}
 {% block extrahead %}
     <link rel="icon" href="/static/base/img/favicon.ico" sizes="48x48" />
+        <style>
+        .module h2, .module caption, .inline-group h2,#header{
+            background-color: #4c96e8;
+        }
+        a:link, a:visited {
+            color: #4c96e8;
+        }
+
+    </style>
 {% endblock %}
+
 {% block branding %}
-    <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">
+            <img class="brand_img" src="/static/base/img/logo-white.png" height="40" alt="logo">
+        </a>
+    </h1>
 {% endblock %}
