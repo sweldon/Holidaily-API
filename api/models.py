@@ -238,3 +238,15 @@ class UserNotifications(models.Model):
         #         users=target,
         #         notif_id=self.notification_id,
         #     )
+
+
+class Post(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    holiday = models.ForeignKey(Holiday, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    likes = models.IntegerField(default=0)
+    deleted = models.BooleanField(default=False)
+    reports = models.IntegerField(default=0)
+    edited = models.DateTimeField(blank=True, null=True)
+    image = models.TextField(blank=True, null=True)

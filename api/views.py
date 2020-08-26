@@ -20,6 +20,7 @@ from .models import (
     UserNotifications,
     UserCommentVotes,
     UserProfile,
+    Post,
 )
 from .serializers import (
     UserSerializer,
@@ -27,6 +28,7 @@ from .serializers import (
     CommentSerializer,
     UserNotificationsSerializer,
     UserProfileSerializer,
+    PostSerializer,
 )
 from django.contrib.auth.models import User
 from rest_framework.response import Response
@@ -910,3 +912,42 @@ def tweets_view(request):
         response.append(h)
 
     return Response(response)
+
+
+class PostList(APIView):
+
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    def get(self, request):
+        holiday_id = request.GET.get("holiday_id")
+        if holiday_id:
+            h = Holiday.objects.filter(pk=holiday_id).first()
+            if h:
+                posts = Post.objects.filter(holiday=h).order_by("-id")
+                # TODO pagination
+                serializer = PostSerializer(posts, many=True)
+                results = {"results": serializer.data}
+                return Response(results)
+            else:
+                results = {
+                    "status": HTTP_200_OK,
+                    "message": f"Holiday {holiday_id} does not exist",
+                }
+                return Response(results)
+        raise RequestError("Please pass a holiday id")
+
+    def post(self, request):
+        username = request.POST.get("username")
+        content = request.POST.get("content")
+        holiday_id = request.POST.get("holiday_id")
+        user = User.objects.filter(username=username).first()
+        holiday = Holiday.objects.filter(pk=holiday_id).first()
+        if user and holiday:
+            new_post = Post.objects.create(
+                author=user, content=content, holiday=holiday, timestamp=timezone.now(),
+            )
+            results = {"status": HTTP_200_OK, "post_id": new_post.id}
+            return Response(results)
+        else:
+            raise RequestError("User or holiday does not exist")

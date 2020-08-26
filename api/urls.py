@@ -20,6 +20,7 @@ urlpatterns = [
     path("pending/", views.UserHolidays.as_view(), name="pending"),
     path("submit/", views.UserHolidays.as_view(), name="submit"),
     path("tweets/", views.tweets_view, name="tweets_view"),
+    path("posts/", views.PostList.as_view(), name="post_list"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
