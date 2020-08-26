@@ -15,6 +15,7 @@ from .models import (
     UserHolidayVotes,
     UserNotifications,
     UserCommentVotes,
+    Post,
 )
 from django.db import models
 import logging
@@ -204,9 +205,14 @@ class CommentVotesAdmin(admin.ModelAdmin):
     search_fields = ("user", "comment")
 
 
+class PostAdmin(admin.ModelAdmin):
+    raw_id_fields = ("holiday",)
+
+
 admin.site.register(Holiday, HolidayAdmin)
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Comment, CommentAdmin)
 admin.site.register(UserHolidayVotes, HolidayVotesAdmin)
 admin.site.register(UserNotifications, NotificationsAdmin)
 admin.site.register(UserCommentVotes, CommentVotesAdmin)
+admin.site.register(Post, PostAdmin)

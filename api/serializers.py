@@ -10,6 +10,7 @@ from .models import (
     UserNotifications,
     UserHolidayVotes,
     UserCommentVotes,
+    Post,
 )
 from django.contrib.auth.models import User
 from api.constants import (
@@ -309,3 +310,36 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             "time_since",
             "icon",
         )
+
+
+class PostSerializer(serializers.ModelSerializer):
+    time_since = serializers.SerializerMethodField()
+    deleted = serializers.BooleanField()
+    edited = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+
+    def get_author(self, obj):
+        return obj.author.username
+
+    def get_time_since(self, obj):
+        time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
+        return normalize_time(time_ago, "precise", short=True)
+
+    def get_edited(self, obj):
+        if obj.edited:
+            time_ago = humanize.naturaltime(timezone.now() - obj.edited)
+            return normalize_time(time_ago, "precise", short=True)
+
+    def get_avatar(self, obj):
+        profile = UserProfile.objects.get(user=obj.author)
+        avatar = (
+            f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
+            if profile and profile.avatar_approved
+            else None
+        )
+        return avatar
+
+    class Meta:
+        model = Post
+        fields = "__all__"
