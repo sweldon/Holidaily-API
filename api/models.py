@@ -242,7 +242,7 @@ class UserNotifications(models.Model):
 
 class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = models.TextField()
+    content = models.TextField(blank=True, null=True)
     holiday = models.ForeignKey(Holiday, on_delete=models.CASCADE)
     timestamp = models.DateTimeField()
     likes = models.IntegerField(default=0)
