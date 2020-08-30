@@ -941,13 +941,29 @@ class PostList(APIView):
         username = request.POST.get("username")
         content = request.POST.get("content")
         holiday_id = request.POST.get("holiday_id")
+        post_image = request.FILES.get("post_image", None)
         user = User.objects.filter(username=username).first()
         holiday = Holiday.objects.filter(pk=holiday_id).first()
         if user and holiday:
+            image_link = None
+            if post_image:
+                settings.S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                    Key=str(post_image), Body=post_image
+                )
+
+                image_link = f"{S3_BUCKET_IMAGES}/{post_image}"
             new_post = Post.objects.create(
-                author=user, content=content, holiday=holiday, timestamp=timezone.now(),
+                author=user,
+                content=content,
+                holiday=holiday,
+                timestamp=timezone.now(),
+                image=image_link,
             )
-            results = {"status": HTTP_200_OK, "post_id": new_post.id}
+            results = {
+                "status": HTTP_200_OK,
+                "post_id": new_post.id,
+                "image": new_post.image,
+            }
             return Response(results)
         else:
             raise RequestError("User or holiday does not exist")
