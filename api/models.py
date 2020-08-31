@@ -114,7 +114,12 @@ class Holiday(models.Model):
     push = models.TextField(
         null=True, blank=True, help_text="Push notification message sent out to users"
     )
-    image = models.TextField(null=True, help_text="Paste in URL to image for upload")
+    image = models.TextField(
+        null=True, blank=True, help_text="Paste in URL to image for upload"
+    )
+    uploaded_image = models.ImageField(
+        blank=True, null=True, help_text="Upload image from your device"
+    )
     image_name = models.CharField(max_length=100, default=None, null=True, blank=True)
     date = models.DateField(null=False)
     # Creator is null for regular holidays, set for user submitted

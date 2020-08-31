@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.forms import Textarea
 from io import BytesIO
 
-from api.constants import S3_BUCKET_NAME
+from api.constants import S3_BUCKET_NAME, S3_BUCKET_IMAGES
 from holidaily.helpers.notification_helpers import award_and_notify_user_for_holiday
 from django.conf import settings
 from .models import (
@@ -57,6 +57,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "get_image",
         "image_format",
         "image",
+        "uploaded_image",
         "description",
         "push",
         "blurb",
@@ -78,6 +79,9 @@ class HolidayAdmin(admin.ModelAdmin):
         return form
 
     def save_model(self, request, obj, form, change):
+        if "uploaded_image" in form.changed_data and obj.uploaded_image:
+            obj.image_name = obj.uploaded_image
+            obj.image = f"{S3_BUCKET_IMAGES}/{obj.uploaded_image}"
 
         if (
             "active" in form.changed_data
@@ -99,7 +103,7 @@ class HolidayAdmin(admin.ModelAdmin):
                     f"Holiday approved, but {obj.creator.username} could not be reached for notification",
                 )
 
-        if "image" in form.changed_data:
+        if "image" in form.changed_data and "uploaded_image" not in form.changed_data:
             try:
                 image_data = requests.get(obj.image).content
                 image_object = Image.open(BytesIO(image_data))
