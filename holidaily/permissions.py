@@ -14,8 +14,12 @@ class UpdateObjectPermission(BasePermission):
 
     def has_object_permission(self, request, view, update_object):
 
-        # Allow report patch from anyone
-        if request.data.get("report", None) or request.data.get("like"):
+        # Allow report patch from anyone, vote is legacy and should become 'like'
+        if (
+            request.data.get("report", None)
+            or request.data.get("like")
+            or request.data.get("vote")
+        ):
             return True
 
         device_id = request.data.get("device_id", None)
