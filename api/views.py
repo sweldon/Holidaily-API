@@ -12,6 +12,7 @@ from holidaily.helpers.notification_helpers import (
     send_slack,
     send_email_to_user,
 )
+from holidaily.permissions import UpdateObjectPermission
 from holidaily.utils import sync_devices, normalize_time
 from .models import (
     Holiday,
@@ -477,69 +478,48 @@ class HolidayDetail(APIView):
             return Response(results)
 
 
-class CommentDetail(APIView):
+class CommentDetail(generics.RetrieveUpdateAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = [UpdateObjectPermission]
 
-    def get_object(self, pk):
-        try:
-            return Comment.objects.get(pk=pk)
-        except Comment.DoesNotExist:
-            raise HTTP_404_NOT_FOUND
+    def patch(self, request, *args, **kwargs):
 
-    def get(self, request, pk):
-        comment = self.get_object(pk)
-        serializer = CommentSerializer(comment)
-        results = {"results": serializer.data}
-        return Response(results)
+        data = request.data.copy()
+        updated_comment = self.get_object()
+        if not self.get_queryset().count():
+            raise RequestError("No comments available for update")
 
-    def patch(self, request, pk):
-        device_id = request.data.get("device_id", None)
-        username = request.data.get("username", None)
-        content = request.data.get("content", None)
+        profile = UserProfile.objects.get(
+            device_id=data["device_id"], user__username=data["username"]
+        )
+        data["user"] = profile.user.id
 
-        try:
-            comment = self.get_object(pk)
-        except:  # noqa
-            results = {
-                "status": HTTP_404_NOT_FOUND,
-                "message": "Comment no longer exists",
-            }
-            return Response(results)
+        if "report" in data:
+            block = True if data["block"] in TRUTHY_STRS else False
+            current_reports = updated_comment.reports
+            data["reports"] = current_reports + 1
+            profile.reported_comments.add(updated_comment)
+            if block:
+                profile.blocked_users.add(updated_comment.user)
 
-        if device_id is not None:
-            device_id = device_id.strip()
-        else:
-            results = {
-                "status": HTTP_400_BAD_REQUEST,
-                "message": "Please log back in and try again",
-            }
-            return Response(results)
+            send_slack(
+                f"[*REPORT RECEIVED*] *{data['username']}* has submitted a report for a post by "
+                f"*{updated_comment.user}*,"
+                f" on *{updated_comment.holiday.name}*. See post below.\n"
+                f"```{updated_comment.content}```\n"
+                f"- Link to post in Admin: https://holidailyapp.com/admin/api/comment/{updated_comment.id}/"
+            )
 
-        device_profile = UserProfile.objects.filter(
-            user__username=username, device_id=device_id
-        ).first()
-        if not device_profile:
-            results = {
-                "status": HTTP_403_FORBIDDEN,
-                "message": "Please log back in and try again",
-            }
-            return Response(results)
+        if "content" in data and data["content"] != updated_comment.content:
+            data["edited"] = timezone.now()
 
-        device_user = device_profile.user.id
-        comment_user = comment.user.id
-        if device_user == comment_user:
-            comment.content = content
-            comment.edited = timezone.now()
-            comment.save()
-        else:
-            results = {
-                "status": HTTP_403_FORBIDDEN,
-                "message": "You aren't allowed to edit this comment",
-            }
-            return Response(results)
-
-        results = {"status": 200, "message": "OK"}
+        serializer = self.get_serializer(self.get_object(), data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        results = serializer.data
+        # TODO this is for legacy apps before post update, need this response
+        results.update({"status": 200, "message": "OK"})
         return Response(results)
 
     def post(self, request, pk):
@@ -548,7 +528,7 @@ class CommentDetail(APIView):
         report = request.POST.get("report", None)
         block_request = request.POST.get("block", None)
         block = True if block_request in TRUTHY_STRS else False
-        comment = self.get_object(pk)
+        comment = self.get_object()
 
         if vote:
             vote = int(vote)
@@ -607,11 +587,15 @@ class CommentList(generics.GenericAPIView):
     # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-        holiday = request.GET.get("holiday", None)
-        if holiday:
-            comments = Holiday.objects.get(id=holiday).comment_set.order_by("-votes")
+        holiday_id = request.GET.get("holiday", None)
+        post_id = request.GET.get("post", None)
+        if holiday_id:
+            comments = Holiday.objects.get(id=holiday_id).comment_set.order_by("-votes")
+        elif post_id:
+            post = Post.objects.get(id=post_id)
+            comments = Comment.objects.filter(parent_post=post)
         else:
-            raise RequestError("Please provide a holiday for comments")
+            raise RequestError("Invalid query")
         serializer = CommentSerializer(comments, many=True)
         results = {"results": serializer.data}
         return Response(results)
@@ -684,12 +668,6 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
             comment_user = comment.user.id
             if device_user == comment_user:
-                # notifications = UserNotifications.objects.filter(
-                #     notification_id=comment.id, notification_type=COMMENT_NOTIFICATION
-                # )
-                # for n in notifications:
-                #     n.delete()
-                # comment.delete()
                 comment.deleted = True
                 comment.save()
                 results = {
@@ -705,8 +683,10 @@ class CommentList(generics.GenericAPIView):
                 return Response(results)
         elif content:
             parent_id = request.POST.get("parent", None)
+            post_id = request.POST.get("post", None)
             holiday = Holiday.objects.get(id=holiday)
             parent = Comment.objects.get(id=parent_id) if parent_id else None
+            post = Post.objects.get(id=post_id) if post_id else None
             user = User.objects.get(username=username)
 
             if UserProfile.objects.get(user=user).active:
@@ -716,6 +696,7 @@ class CommentList(generics.GenericAPIView):
                     user=user,
                     timestamp=timezone.now(),
                     parent=parent,
+                    parent_post=post,
                 )
                 new_comment.save()
                 mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
@@ -741,7 +722,9 @@ class CommentList(generics.GenericAPIView):
                         )
                         if not push_sent and settings.EMAIL_NOTIFICATIONS_ENABLED:
                             send_email_to_user(user_to_notify, n)
-                results = {"status": HTTP_200_OK, "message": "OK"}
+                results = CommentSerializer(new_comment).data
+                # TODO legacy
+                results.update({"status": HTTP_200_OK, "message": "OK"})
                 return Response(results)
             else:
                 raise DeniedError(
@@ -914,6 +897,68 @@ def tweets_view(request):
     return Response(response)
 
 
+class PostDetail(generics.RetrieveUpdateAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [UpdateObjectPermission]
+    queryset = Post.objects.all()
+
+    def patch(self, request, *args, **kwargs):
+
+        data = request.data.copy()
+        updated_post = self.get_object()
+        if not self.get_queryset().count():
+            raise RequestError("No posts available for update")
+        profile = UserProfile.objects.get(
+            device_id=data["device_id"], user__username=data["username"]
+        )
+        data["user"] = profile.user.id
+        new_image = request.FILES.get("post_image", None)
+
+        if new_image:
+            settings.S3_CLIENT.Bucket(S3_BUCKET_NAME).put_object(
+                Key=str(new_image), Body=new_image
+            )
+            data["image"] = f"{S3_BUCKET_IMAGES}/{new_image}"
+        else:
+            # Cleared image from edit
+            remove_image = data.pop("clear_image", None)
+            if remove_image is not None:
+                data["image"] = None
+
+        if "report" in data:
+            block = True if data["block"] in TRUTHY_STRS else False
+            current_reports = updated_post.reports
+            data["reports"] = current_reports + 1
+            profile.reported_posts.add(updated_post)
+            if block:
+                profile.blocked_users.add(updated_post.user)
+
+            send_slack(
+                f"[*REPORT RECEIVED*] *{data['username']}* has submitted a report for a post by *{updated_post.user}*,"
+                f" on *{updated_post.holiday.name}*. See post below.\n"
+                f"```{updated_post.content}```\n"
+                f"- Link to post in Admin: https://holidailyapp.com/admin/api/post/{updated_post.id}/"
+            )
+
+        if "content" in data and data["content"] != updated_post.content:
+            data["edited"] = timezone.now()
+
+        if "like" in data:
+            liked = data["like"] in TRUTHY_STRS
+            current_likes = updated_post.likes
+            if liked:
+                data["likes"] = current_likes + 1
+                updated_post.user_likes.add(profile.user)
+            else:
+                data["likes"] = current_likes - 1
+                updated_post.user_likes.remove(profile.user)
+
+        serializer = self.get_serializer(self.get_object(), data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+
 class PostList(APIView):
 
     queryset = Post.objects.all()
@@ -921,12 +966,23 @@ class PostList(APIView):
 
     def get(self, request):
         holiday_id = request.GET.get("holiday_id")
+        username = request.GET.get("username")
         if holiday_id:
             h = Holiday.objects.filter(pk=holiday_id).first()
             if h:
-                posts = Post.objects.filter(holiday=h).order_by("-id")
+                posts = Post.objects.filter(holiday=h, deleted=False)
+                if username:
+                    profile = UserProfile.objects.get(user__username=username)
+                    blocked_users = profile.blocked_users.all()
+                    reported_posts = profile.reported_posts.all().only("id")
+                    posts = posts.exclude(user__in=blocked_users).exclude(
+                        id__in=reported_posts
+                    )
+                posts = posts.order_by("-id")
                 # TODO pagination
-                serializer = PostSerializer(posts, many=True)
+                serializer = PostSerializer(
+                    posts, many=True, context={"username": username}
+                )
                 results = {"results": serializer.data}
                 return Response(results)
             else:
@@ -953,7 +1009,7 @@ class PostList(APIView):
 
                 image_link = f"{S3_BUCKET_IMAGES}/{post_image}"
             new_post = Post.objects.create(
-                author=user,
+                user=user,
                 content=content,
                 holiday=holiday,
                 timestamp=timezone.now(),
