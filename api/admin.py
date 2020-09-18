@@ -167,7 +167,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "ad_last_watched",
         "requested_confetti_alert",
     )
-    readonly_fields = ("avatar_full", "device_id", "referrer")
+    readonly_fields = ("avatar_full", "referrer")
     raw_id_fields = ("user",)
 
 
@@ -182,7 +182,7 @@ class CommentAdmin(admin.ModelAdmin):
         "parent",
     )
     search_fields = ("content", "holiday__name", "user__username")
-    raw_id_fields = ("user", "holiday", "parent")
+    raw_id_fields = ("user", "holiday", "parent", "parent_post")
     readonly_fields = ("votes", "reports", "edited", "timestamp", "content")
 
 
@@ -210,6 +210,17 @@ class CommentVotesAdmin(admin.ModelAdmin):
 
 
 class PostAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "content",
+        "holiday",
+        "timestamp",
+        "likes",
+        "deleted",
+        "reports",
+        "edited",
+        "image",
+    )
     raw_id_fields = ("holiday",)
 
 

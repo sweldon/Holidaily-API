@@ -165,16 +165,18 @@ class CommentSerializer(serializers.ModelSerializer):
     time_since = serializers.SerializerMethodField()
     vote_status = serializers.SerializerMethodField()
     deleted = serializers.BooleanField()
-    edited = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()
+    time_since_edit = serializers.SerializerMethodField()
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
         return normalize_time(time_ago, "precise")
 
-    def get_edited(self, obj):
+    def get_time_since_edit(self, obj):
         if obj.edited:
             time_ago = humanize.naturaltime(timezone.now() - obj.edited)
-            return normalize_time(time_ago, "precise")
+            return normalize_time(time_ago, "precise", short=True)
 
     def get_vote_status(self, obj):
         username = self.context.get("username", None)
@@ -192,6 +194,33 @@ class CommentSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    def get_avatar(self, obj):
+        profile = UserProfile.objects.get(user=obj.user)
+        avatar = (
+            f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
+            if profile and profile.avatar_approved
+            else None
+        )
+        return avatar
+
+    def _get_replies(self, comment):
+        """ Recursively get comment reply chain """
+        reply_chain = []
+        replies = comment.comment_set.all().order_by("-votes", "-id")
+
+        for c in replies:
+            reply_chain.append(c)
+            if c.comment_set.all().count() > 0:
+                child_replies = self._get_replies(c)
+                reply_chain.extend(child_replies)
+
+        return reply_chain
+
+    def get_replies(self, obj):
+        # TODO limit this / pagination
+        replies = self._get_replies(obj)
+        return CommentSerializer(replies, many=True).data
+
     class Meta:
         model = Comment
         fields = (
@@ -206,6 +235,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "vote_status",
             "deleted",
             "edited",
+            "avatar",
+            "replies",
+            "time_since_edit",
         )
 
 
@@ -319,30 +351,68 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     time_since = serializers.SerializerMethodField()
     deleted = serializers.BooleanField()
-    edited = serializers.SerializerMethodField()
+    time_since_edit = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    liked = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
-    def get_author(self, obj):
-        return obj.author.username
+    def get_user(self, obj):
+        return obj.user.username
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
         return normalize_time(time_ago, "precise", short=True)
 
-    def get_edited(self, obj):
+    def get_time_since_edit(self, obj):
         if obj.edited:
             time_ago = humanize.naturaltime(timezone.now() - obj.edited)
             return normalize_time(time_ago, "precise", short=True)
 
     def get_avatar(self, obj):
-        profile = UserProfile.objects.get(user=obj.author)
+        profile = UserProfile.objects.get(user=obj.user)
         avatar = (
             f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
             if profile and profile.avatar_approved
             else None
         )
         return avatar
+
+    def get_liked(self, obj):
+        username = self.context.get("username", None)
+        if username:
+            liked = obj.user_likes.filter(username=username).exists()
+            return liked
+        else:
+            return False
+
+    def get_replies(self, comment, username):
+        """ Recursively get comment reply chain """
+        reply_chain = []
+        replies = comment.comment_set.all().order_by("-votes", "-id")
+
+        for c in replies:
+            reply_chain.append(c)
+            if c.comment_set.all().count() > 0:
+                child_replies = self.get_replies(c, username)
+                reply_chain.extend(child_replies)
+
+        return reply_chain
+
+    def get_comments(self, obj):
+        # TODO possibly limit these results for pagination
+        comments = Comment.objects.filter(parent_post=obj, deleted=False)
+        username = self.context.get("username", None)
+        if username:
+            profile = UserProfile.objects.get(user__username=username)
+            blocked_users = profile.blocked_users.all()
+            reported_comments = profile.reported_comments.all().only("id")
+            comments = comments.exclude(user__in=blocked_users).exclude(
+                id__in=reported_comments
+            )
+        comments = comments.order_by("-id")
+        data = CommentSerializer(comments, many=True).data
+        return data
 
     class Meta:
         model = Post

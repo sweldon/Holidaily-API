@@ -45,6 +45,9 @@ class UserProfile(models.Model):
     reported_comments = models.ManyToManyField(
         "Comment", related_name="reported_comments", blank=True
     )
+    reported_posts = models.ManyToManyField(
+        "Post", related_name="reported_posts", blank=True
+    )
     confetti = models.IntegerField(default=0)
     platform = models.CharField(max_length=50, default=None, blank=True, null=True)
     version = models.CharField(max_length=50, default=None, blank=True, null=True)
@@ -144,7 +147,7 @@ class Holiday(models.Model):
     @property
     def num_comments(self):
         # Note, this doesn't currently include replies
-        return self.comment_set.filter(deleted=False).count()
+        return self.post_set.filter(deleted=False).count()
 
     def get_image(self):
         return mark_safe(
@@ -185,6 +188,9 @@ class Comment(models.Model):
     deleted = models.BooleanField(default=False)
     reports = models.IntegerField(default=0)
     edited = models.DateTimeField(blank=True, null=True)
+    parent_post = models.ForeignKey(
+        "Post", null=True, blank=True, on_delete=models.CASCADE
+    )
 
     @property
     def replies(self):
@@ -246,7 +252,7 @@ class UserNotifications(models.Model):
 
 
 class Post(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField(blank=True, null=True)
     holiday = models.ForeignKey(Holiday, on_delete=models.CASCADE)
     timestamp = models.DateTimeField()
@@ -255,3 +261,4 @@ class Post(models.Model):
     reports = models.IntegerField(default=0)
     edited = models.DateTimeField(blank=True, null=True)
     image = models.TextField(blank=True, null=True)
+    user_likes = models.ManyToManyField(User, related_name="liked_user")
