@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from api.models import UserProfile
+from api.models import UserProfile, Comment
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -26,6 +26,9 @@ class UpdateObjectPermission(BasePermission):
         username = request.data.get("username", None)
 
         if not device_id or not username:
+            # TODO legacy, <2.0 not sending device_id/username for comment detail
+            if isinstance(update_object, Comment):
+                return True
             logger.warning(
                 f"Device/user not found for {type(update_object)} update: {device_id}/{username}"
             )
