@@ -1,5 +1,7 @@
+import re
 from typing import Union
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -11,13 +13,10 @@ from api.constants import (
     DEFAULT_SLACK_CHANNEL,
     HOLIDAY_SUBMISSION_REWARD,
     COMMENT_NOTIFICATION,
+    POST_NOTIFICATION,
+    LIKE_NOTIFICATION,
 )
-from api.models import (
-    UserProfile,
-    Comment,
-    UserNotifications,
-    Holiday,
-)
+from api.models import UserProfile, Comment, UserNotifications, Holiday, Post
 from holidaily.settings import SLACK_CLIENT
 import logging
 
@@ -103,6 +102,7 @@ def send_email_to_user(
             subject = "Confetti is Ready"
             template = "portal/rewards.html"
             email_data["user"] = user
+    # todo add post type
     else:
         return False
 
@@ -115,10 +115,9 @@ def send_email_to_user(
 
 
 def send_push_to_user(
-    user: User, title: str, body: str, notif_obj: Union[Comment, Holiday, str]
+    user: User, title: str, body: str, notif_obj: Union[Comment, Holiday, str], **kwargs
 ) -> bool:
     """ Send push notification to a user. Returns True if success, False otherwise. """
-
     extra_data = {}
     profile = UserProfile.objects.filter(user=user, logged_out=False).first()
     if not profile:
@@ -126,10 +125,16 @@ def send_push_to_user(
     platform = profile.platform
     unread = UserNotifications.objects.filter(user=user, read=False).count()
     extra_data["unread"] = unread
-    if isinstance(notif_obj, Comment):
-        extra_data["push_type"] = "comment"
+    if isinstance(notif_obj, (Comment, Post)):
+        # This is type "comment" but can technically also be a post.
+        # It's handled as a "comment" in app to redirect.
+        if isinstance(notif_obj, Comment):
+            extra_data["push_type"] = "comment"
+            extra_data["comment_id"] = notif_obj.id
+        else:
+            extra_data["push_type"] = "post"
+            extra_data["post_id"] = notif_obj.id
         extra_data["holiday_id"] = notif_obj.holiday.id
-        extra_data["comment_id"] = notif_obj.id
         extra_data["content"] = notif_obj.content
         extra_data["comment_user"] = notif_obj.user.username
         extra_data["holiday_name"] = notif_obj.holiday.name
@@ -140,6 +145,15 @@ def send_push_to_user(
     elif isinstance(notif_obj, str):
         if notif_obj == "confetti":
             extra_data["push_type"] = "rewards"
+        elif notif_obj == "like":
+            extra_data["push_type"] = "like"
+            holiday_id = kwargs.get("holiday_id")
+            holiday_name = kwargs.get("holiday_name")
+            post_id = kwargs.get("post_id")
+            extra_data["holiday_id"] = holiday_id
+            extra_data["holiday_name"] = holiday_name
+            # Currently only likes for post
+            extra_data["post_id"] = post_id
         else:
             return False
     else:
@@ -207,3 +221,66 @@ def award_and_notify_user_for_holiday(holiday: Holiday) -> bool:
             holiday.save()
             return True
     return False
+
+
+def notify_mentioned_users(notification: Union[Comment, Post]) -> None:
+
+    content = notification.content
+    username = notification.user.username
+    holiday = notification.holiday
+    notification_type = None
+    if isinstance(notification, Comment):
+        notification_type = COMMENT_NOTIFICATION
+    elif isinstance(notification, Post):
+        notification_type = POST_NOTIFICATION
+    else:
+        raise (f"Not a valid notification type: {type(notification_type)}")
+
+    mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
+    # notifications = []
+    for user_mention in mentions:
+        if user_mention == username:
+            continue
+        # Get user profiles, exclude self if user mentions themself for some reason
+        user_to_notify = User.objects.filter(username=user_mention).first()
+        if user_to_notify:
+            n = add_notification(
+                notification.pk,
+                notification_type,
+                user_to_notify,
+                content,
+                f"{username} on {holiday.name}",
+            )
+            push_sent = send_push_to_user(
+                user_to_notify,
+                f"{username} mentioned you on {holiday.name}",
+                f"{content[:100]}{'...' if len(content) > 100 else ''}",
+                notification,
+            )
+            if not push_sent and settings.EMAIL_NOTIFICATIONS_ENABLED:
+                send_email_to_user(user_to_notify, n)
+
+
+def notify_liked_user(obj: Post, user: User) -> bool:
+    """
+    This should accept any entity that can be liked
+    :param obj: The entity being liked
+    :param user: The user that liked the entity
+    :return: True/False depending on success
+    """
+    add_notification(
+        obj.pk,
+        LIKE_NOTIFICATION,
+        obj.user,
+        f"{user.username} liked your post on {obj.holiday.name}",
+        f"{user.username} liked your post",
+    )
+    push_sent = send_push_to_user(
+        obj.user,
+        f"{user.username} liked your post!",
+        f"{user.username} liked your post on {obj.holiday.name}",
+        "like",
+        holiday_id=obj.holiday.id,
+        holiday_name=obj.holiday.name,
+    )
+    return push_sent
