@@ -575,7 +575,7 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
             results = {"status": HTTP_200_OK, "message": "OK"}
             return Response(results)
         else:
-            comment = self.get_object(pk)
+            comment = self.get_object()
             serializer = CommentSerializer(comment, context={"username": username})
             results = {"results": serializer.data}
             return Response(results)
