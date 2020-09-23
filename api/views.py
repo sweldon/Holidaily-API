@@ -7,10 +7,9 @@ from push_notifications.models import APNSDevice, GCMDevice
 from rest_framework.decorators import api_view
 
 from holidaily.helpers.notification_helpers import (
-    add_notification,
-    send_push_to_user,
     send_slack,
-    send_email_to_user,
+    notify_mentioned_users,
+    notify_liked_user,
 )
 from holidaily.permissions import UpdateObjectPermission
 from holidaily.utils import sync_devices, normalize_time
@@ -63,6 +62,8 @@ from api.constants import (
     CLOUDFRONT_DOMAIN,
     S3_BUCKET_IMAGES,
     CONFETTI_COOLDOWN_MINUTES,
+    POST_NOTIFICATION,
+    LIKE_NOTIFICATION,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -178,12 +179,22 @@ class UserProfileDetail(generics.RetrieveUpdateDestroyAPIView):
             version = request.POST.get("version", None)
             platform = request.POST.get("platform", None)
             requires_update = False
+            force_update = False
+
             if settings.UPDATE_ALERT:
                 if platform == ANDROID and version != settings.ANDROID_VERSION:
                     requires_update = True
                 elif platform == IOS and version != settings.IOS_VERSION:
                     requires_update = True
-            results = {"needs_update": requires_update, "status": HTTP_200_OK}
+
+                if settings.FORCE_UPDATE and requires_update:
+                    force_update = True
+
+            results = {
+                "needs_update": requires_update,
+                "force_update": force_update,
+                "status": HTTP_200_OK,
+            }
             return Response(results)
 
         if not profile:
@@ -313,7 +324,6 @@ class UserDetail(generics.RetrieveAPIView):
 class HolidayList(generics.GenericAPIView):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
-    # permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
         top_holidays = request.GET.get("top", None)
@@ -324,7 +334,7 @@ class HolidayList(generics.GenericAPIView):
         elif by_name:
             holidays = Holiday.objects.filter(name=by_name, active=True)
         else:
-            # Default list of today's holidays
+            # Not used in app, just a default
             today = timezone.now()
             holidays = Holiday.objects.filter(
                 date__range=[today - timedelta(days=7), today], active=True
@@ -338,6 +348,10 @@ class HolidayList(generics.GenericAPIView):
         username = request.POST.get("username", None)
         search = request.POST.get("search", None)
         holidays_by = request.POST.get("holidays_by", None)
+        past = request.POST.get("past", None)
+        # 2.0+ will always send page
+        page = request.POST.get("page", None)
+
         if search:
             is_date = False
             try:
@@ -365,12 +379,28 @@ class HolidayList(generics.GenericAPIView):
             holidays = Holiday.objects.filter(
                 creator__username=holidays_by, active=True
             ).order_by("-votes")
-        else:
-            # Most recent holidays
+        elif past:
             today = timezone.now()
-            holidays = Holiday.objects.filter(
-                date__range=[today - timedelta(days=7), today], active=True
-            ).order_by("-date")
+            chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
+            holidays = Holiday.objects.filter(date__lt=today).order_by("-date")[
+                chunk : chunk + settings.HOLIDAY_PAGE_SIZE
+            ]
+            print(
+                f"loading past holidays {chunk} to {chunk + settings.HOLIDAY_PAGE_SIZE}"
+            )
+        else:
+            # Default endpoint for all users
+            today = timezone.now()
+            if page is not None:
+                chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
+                holidays = Holiday.objects.filter(date__gte=today).order_by("date")[
+                    chunk : chunk + settings.HOLIDAY_PAGE_SIZE
+                ]
+            else:
+                # TODO legacy < 2.0, needs -date because of range & no pagination
+                holidays = Holiday.objects.filter(
+                    date__range=[today - timedelta(days=7), today], active=True
+                ).order_by("-date")
 
         serializer = HolidaySerializer(
             holidays, many=True, context={"username": username}
@@ -699,29 +729,7 @@ class CommentList(generics.GenericAPIView):
                     parent_post=post,
                 )
                 new_comment.save()
-                mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
-                # notifications = []
-                for user_mention in mentions:
-                    if user_mention == username:
-                        continue
-                    # Get user profiles, exclude self if user mentions themself for some reason
-                    user_to_notify = User.objects.filter(username=user_mention).first()
-                    if user_to_notify:
-                        n = add_notification(
-                            new_comment.pk,
-                            COMMENT_NOTIFICATION,
-                            user_to_notify,
-                            content,
-                            f"{username} on {holiday.name}",
-                        )
-                        push_sent = send_push_to_user(
-                            user_to_notify,
-                            f"{username} mentioned you on {holiday.name}",
-                            f"{content[:100]}{'...' if len(content) > 100 else ''}",
-                            new_comment,
-                        )
-                        if not push_sent and settings.EMAIL_NOTIFICATIONS_ENABLED:
-                            send_email_to_user(user_to_notify, n)
+                notify_mentioned_users(new_comment)
                 results = CommentSerializer(new_comment).data
                 # TODO legacy
                 results.update({"status": HTTP_200_OK, "message": "OK"})
@@ -836,11 +844,14 @@ class UserNotificationsView(generics.GenericAPIView):
         mark_read_id = request.POST.get("mark_read_id", None)
         if mark_read_id:
             mark_read_type = request.POST.get("mark_read_type", None)
+            # n_type used to find unique type/pk combo, can have many in this table
             n_type = None
-
             if mark_read_type == "comment":
                 n_type = COMMENT_NOTIFICATION
-
+            elif mark_read_type == "post":
+                n_type = POST_NOTIFICATION
+            elif mark_read_type == "like":
+                n_type = LIKE_NOTIFICATION
             # Can add more types in the future
             if n_type is not None:
                 notification = UserNotifications.objects.filter(
@@ -946,13 +957,24 @@ class PostDetail(generics.RetrieveUpdateAPIView):
         if "like" in data:
             liked = data["like"] in TRUTHY_STRS
             current_likes = updated_post.likes
+            author = UserProfile.objects.get(user=updated_post.user)
             if liked:
                 data["likes"] = current_likes + 1
+                author.confetti += 1
                 updated_post.user_likes.add(profile.user)
+                # No need to notify if liking their own post
+                if updated_post.user != profile.user:
+                    cache_key = (
+                        f"post_like_notification_{updated_post.id}_{profile.user.id}"
+                    )
+                    if not cache.get(cache_key):
+                        cache.set(cache_key, 1, 300)
+                        notify_liked_user(updated_post, profile.user)
             else:
                 data["likes"] = current_likes - 1
+                author.confetti -= 1
                 updated_post.user_likes.remove(profile.user)
-
+            author.save(update_fields=["confetti"])
         serializer = self.get_serializer(self.get_object(), data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -1015,6 +1037,8 @@ class PostList(APIView):
                 timestamp=timezone.now(),
                 image=image_link,
             )
+            if content:
+                notify_mentioned_users(new_post)
             results = {
                 "status": HTTP_200_OK,
                 "post_id": new_post.id,

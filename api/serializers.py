@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from factory.django import get_model
 from rest_framework import serializers
 
 from holidaily.utils import normalize_time
@@ -22,9 +23,14 @@ from api.constants import (
     COMMENT_NOTIFICATION,
     CLOUDFRONT_DOMAIN,
     CONFETTI_COOLDOWN_MINUTES,
+    POST_NOTIFICATION,
+    LIKE_NOTIFICATION,
 )
 from django.utils import timezone
 import humanize
+from logging import getLogger
+
+logger = getLogger("holidaily")
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -266,7 +272,7 @@ class HolidaySerializer(serializers.ModelSerializer):
     # def get_time_since(self, obj):
     #     if obj.date == timezone.now().date():
     #         return "Today"
-    #     return obj.date.strftime("%B %d, %Y")
+    #     return obj.date.strftime("%b %d, %Y")
 
     def get_celebrating(self, obj):
         username = self.context.get("username", None)
@@ -307,12 +313,38 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
     title = serializers.CharField()
     time_since = serializers.SerializerMethodField()
     icon = serializers.SerializerMethodField()
+    holiday_id = serializers.SerializerMethodField()
 
     def get_notification_type(self, obj):
         if obj.notification_type == NEWS_NOTIFICATION:
             return "News"
         elif obj.notification_type == COMMENT_NOTIFICATION:
             return "Comment"
+        elif obj.notification_type == POST_NOTIFICATION:
+            return "Post"
+        elif obj.notification_type == LIKE_NOTIFICATION:
+            return "Like"
+
+    def get_holiday_id(self, obj):
+        try:
+            if obj.notification_type == LIKE_NOTIFICATION:
+                liked_post = Post.objects.filter(pk=obj.notification_id).first()
+                if liked_post:
+                    return liked_post.holiday.id
+            else:
+                # Directly linked to holiday
+                entity = (
+                    get_model("api", self.get_notification_type(obj))
+                    .objects.filter(pk=obj.notification_id)
+                    .first()
+                )
+                if entity:
+                    return entity.holiday.id
+        except AttributeError:
+            logger.warning(
+                f"{obj.notification_type} notification is not linked to holiday."
+            )
+        return None
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
@@ -345,6 +377,7 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             "title",
             "time_since",
             "icon",
+            "holiday_id",
         )
 
 

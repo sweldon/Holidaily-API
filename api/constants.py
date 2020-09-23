@@ -38,6 +38,8 @@ DOWNVOTE = "down"
 NEWS_NOTIFICATION = 1
 COMMENT_NOTIFICATION = 0
 HOLIDAY_NOTIFICATION = 2
+POST_NOTIFICATION = 3
+LIKE_NOTIFICATION = 4
 
 CLOUDFRONT_DOMAIN = "https://d2cwe0vw7pxea6.cloudfront.net"
 S3_BUCKET_IMAGES = "https://holiday-images.s3.amazonaws.com"

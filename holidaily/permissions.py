@@ -22,6 +22,10 @@ class UpdateObjectPermission(BasePermission):
         ):
             return True
 
+        # Allow a simple get without account validation
+        if request.method == "GET":
+            return True
+
         device_id = request.data.get("device_id", None)
         username = request.data.get("username", None)
 

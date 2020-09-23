@@ -20,6 +20,8 @@ import twitter
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
+from api.constants import TRUTHY_STRS
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -173,6 +175,7 @@ if not DEBUG:
 HOLIDAY_IMAGE_WIDTH = 338
 HOLIDAY_IMAGE_HEIGHT = 225
 COMMENT_PAGE_SIZE = 10
+HOLIDAY_PAGE_SIZE = 10
 ENABLE_NEW_USER_ALERT = False if os.environ["DEBUG"] == "True" else True
 
 PUSH_NOTIFICATIONS_SETTINGS = {
@@ -186,7 +189,6 @@ PUSH_NOTIFICATIONS_SETTINGS = {
 }
 
 UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
-
 VALIDATE_EMAIL = False if DEBUG else True
 
 # Elasticsearch
@@ -294,3 +296,6 @@ CACHES = {
 
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 AWS_STORAGE_BUCKET_NAME = "holiday-images"
+
+FORCE_UDPATE_VAL = os.environ.get("FORCE_UPDATE")
+FORCE_UPDATE = True if FORCE_UDPATE_VAL in TRUTHY_STRS else False
