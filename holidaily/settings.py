@@ -188,8 +188,7 @@ PUSH_NOTIFICATIONS_SETTINGS = {
     "FCM_API_KEY": os.environ["FCM_API_KEY"],
 }
 
-# UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
-UPDATE_ALERT = True
+UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
 VALIDATE_EMAIL = False if DEBUG else True
 
 # Elasticsearch
