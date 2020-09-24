@@ -50,6 +50,7 @@ class HolidayAdmin(admin.ModelAdmin):
     )
     ordering = ("-created",)
     readonly_fields = ("get_image", "created", "votes", "creator_awarded", "creator")
+    raw_id_fields = ("photo_credit_user",)
     fields = (
         "name",
         "date",
@@ -58,6 +59,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "image_format",
         "image",
         "uploaded_image",
+        "photo_credit_user",
         "description",
         "push",
         "blurb",
@@ -89,6 +91,7 @@ class HolidayAdmin(admin.ModelAdmin):
             and obj.creator
             and not obj.creator_awarded
         ):
+
             push_sent = award_and_notify_user_for_holiday(obj)
             if push_sent:
                 messages.add_message(

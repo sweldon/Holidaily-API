@@ -15,6 +15,7 @@ from api.constants import (
     COMMENT_NOTIFICATION,
     POST_NOTIFICATION,
     LIKE_NOTIFICATION,
+    HOLIDAY_NOTIFICATION,
 )
 from api.models import UserProfile, Comment, UserNotifications, Holiday, Post
 from holidaily.settings import SLACK_CLIENT
@@ -208,6 +209,14 @@ def award_and_notify_user_for_holiday(holiday: Holiday) -> bool:
 
     push_title = "Holiday Approved"
     push_body = f"{holiday.name} was approved and you have been awarded {HOLIDAY_SUBMISSION_REWARD} confetti!"
+
+    add_notification(
+        holiday.pk,
+        HOLIDAY_NOTIFICATION,
+        creator,
+        f"{holiday.name} has been approved! You have been awarded {HOLIDAY_SUBMISSION_REWARD} confetti.",
+        "Holiday Approved",
+    )
 
     push_sent = send_push_to_user(creator, push_title, push_body, holiday)
     if push_sent:
