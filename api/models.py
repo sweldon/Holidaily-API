@@ -143,6 +143,13 @@ class Holiday(models.Model):
         default=False,
         help_text="Has user already been sent a push notification and awarded confetti",
     )
+    photo_credit_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="holiday_photos",
+    )
 
     @property
     def num_comments(self):

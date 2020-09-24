@@ -25,6 +25,7 @@ from api.constants import (
     CONFETTI_COOLDOWN_MINUTES,
     POST_NOTIFICATION,
     LIKE_NOTIFICATION,
+    HOLIDAY_NOTIFICATION,
 )
 from django.utils import timezone
 import humanize
@@ -261,6 +262,12 @@ class HolidaySerializer(serializers.ModelSerializer):
     celebrating = serializers.SerializerMethodField()
     active = serializers.BooleanField()
     blurb = serializers.CharField()
+    photo_credit = serializers.SerializerMethodField()
+
+    def get_photo_credit(self, obj):
+        if obj.photo_credit_user:
+            return obj.photo_credit_user.username
+        return None
 
     def get_image(self, obj):
         return f"{CLOUDFRONT_DOMAIN}/{obj.image_name}"
@@ -300,6 +307,7 @@ class HolidaySerializer(serializers.ModelSerializer):
             "celebrating",
             "active",
             "blurb",
+            "photo_credit",
         )
 
 
@@ -324,6 +332,8 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             return "Post"
         elif obj.notification_type == LIKE_NOTIFICATION:
             return "Like"
+        elif obj.notification_type == HOLIDAY_NOTIFICATION:
+            return "Holiday"
 
     def get_holiday_id(self, obj):
         try:
@@ -331,8 +341,12 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
                 liked_post = Post.objects.filter(pk=obj.notification_id).first()
                 if liked_post:
                     return liked_post.holiday.id
+            elif obj.notification_type == HOLIDAY_NOTIFICATION:
+                holiday = Holiday.objects.filter(pk=obj.notification_id).first()
+                if holiday:
+                    return holiday.id
             else:
-                # Directly linked to holiday
+                # Directly linked to holiday via holiday FK
                 entity = (
                     get_model("api", self.get_notification_type(obj))
                     .objects.filter(pk=obj.notification_id)

@@ -385,9 +385,6 @@ class HolidayList(generics.GenericAPIView):
             holidays = Holiday.objects.filter(date__lt=today).order_by("-date")[
                 chunk : chunk + settings.HOLIDAY_PAGE_SIZE
             ]
-            print(
-                f"loading past holidays {chunk} to {chunk + settings.HOLIDAY_PAGE_SIZE}"
-            )
         else:
             # Default endpoint for all users
             today = timezone.now()
