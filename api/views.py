@@ -382,17 +382,22 @@ class HolidayList(generics.GenericAPIView):
         elif past:
             today = timezone.now()
             chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
-            holidays = Holiday.objects.filter(date__lt=today).order_by("-date")[
-                chunk : chunk + settings.HOLIDAY_PAGE_SIZE
-            ]
+            holidays = Holiday.objects.filter(
+                Q(date__lt=today, active=True)
+                | Q(date__lt=today, active=False, creator__isnull=True)
+            ).order_by("-date")[chunk : chunk + settings.HOLIDAY_PAGE_SIZE]
         else:
             # Default endpoint for all users
             today = timezone.now()
             if page is not None:
                 chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
-                holidays = Holiday.objects.filter(date__gte=today).order_by("date")[
-                    chunk : chunk + settings.HOLIDAY_PAGE_SIZE
-                ]
+                holidays = Holiday.objects.filter(
+                    Q(date=today, active=True)
+                    | (
+                        Q(date__gt=today, active=True)
+                        | Q(date__gt=today, active=False, creator__isnull=True)
+                    )
+                ).order_by("date")[chunk : chunk + settings.HOLIDAY_PAGE_SIZE]
             else:
                 # TODO legacy < 2.0, needs -date because of range & no pagination
                 holidays = Holiday.objects.filter(
@@ -912,7 +917,9 @@ class PostDetail(generics.RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
 
-        data = request.data.copy()
+        # File serialization issue during copy, ignore and handle below
+        data = {k: v for k, v in request.data.items() if k != "post_image"}
+
         updated_post = self.get_object()
         if not self.get_queryset().count():
             raise RequestError("No posts available for update")
