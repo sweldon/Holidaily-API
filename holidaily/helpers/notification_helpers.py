@@ -291,5 +291,6 @@ def notify_liked_user(obj: Post, user: User) -> bool:
         "like",
         holiday_id=obj.holiday.id,
         holiday_name=obj.holiday.name,
+        post_id=obj.id,
     )
     return push_sent

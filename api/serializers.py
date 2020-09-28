@@ -371,6 +371,10 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             c = Comment.objects.filter(id=obj.notification_id).first()
             if c:
                 profile = UserProfile.objects.filter(user=c.user).first()
+        elif obj.notification_type == POST_NOTIFICATION:
+            p = Post.objects.filter(id=obj.notification_id).first()
+            if p:
+                profile = UserProfile.objects.filter(user=p.user).first()
         # todo get icon for likes
         icon = (
             f"{CLOUDFRONT_DOMAIN}/{profile.profile_image}"
