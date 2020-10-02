@@ -150,6 +150,9 @@ class Holiday(models.Model):
         null=True,
         related_name="holiday_photos",
     )
+    notes = models.TextField(
+        null=True, blank=True, help_text="Additional notes about this holiday"
+    )
 
     @property
     def num_comments(self):

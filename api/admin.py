@@ -37,6 +37,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "num_comments",
         "creator",
         "created",
+        "notes",
     )
     search_fields = (
         "name",
@@ -47,6 +48,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "image",
         "date",
         "creator__username",
+        "notes",
     )
     ordering = ("-created",)
     readonly_fields = ("get_image", "created", "votes", "creator_awarded", "creator")
@@ -67,6 +69,7 @@ class HolidayAdmin(admin.ModelAdmin):
         "creator",
         "created",
         "creator_awarded",
+        "notes",
     )
     formfield_overrides = {
         models.CharField: {"widget": Textarea(attrs={"rows": 1, "cols": 40})},
