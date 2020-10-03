@@ -438,7 +438,11 @@ class UserHolidays(HolidayList):
                     image_link = f"{S3_BUCKET_IMAGES}/{image_name}"
                 description = request.POST.get("description", None)
                 date = request.POST.get("date", None)
-                date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
+                try:
+                    date_formatted = datetime.strptime(date.split(" ")[0], "%m/%d/%Y")
+                except:  # noqa
+                    # European date time format
+                    date_formatted = datetime.strptime(date.split(" ")[0], "%d.%m.%Y")
                 holiday = Holiday.objects.create(
                     name=submission,
                     description=description,
