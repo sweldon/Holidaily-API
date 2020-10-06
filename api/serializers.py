@@ -213,7 +213,7 @@ class CommentSerializer(serializers.ModelSerializer):
     def _get_replies(self, comment):
         """ Recursively get comment reply chain """
         reply_chain = []
-        replies = comment.comment_set.all().order_by("-votes", "-id")
+        replies = comment.comment_set.filter(deleted=False).order_by("-votes", "-id")
 
         for c in replies:
             reply_chain.append(c)
