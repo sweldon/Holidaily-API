@@ -217,6 +217,7 @@ class CommentVotesAdmin(admin.ModelAdmin):
 
 class PostAdmin(admin.ModelAdmin):
     list_display = (
+        "get_image_small",
         "user",
         "content",
         "holiday",
@@ -225,9 +226,21 @@ class PostAdmin(admin.ModelAdmin):
         "deleted",
         "reports",
         "edited",
-        "image",
     )
+    fields = (
+        "get_image",
+        "user",
+        "content",
+        "holiday",
+        "timestamp",
+        "likes",
+        "deleted",
+        "reports",
+        "edited",
+    )
+    search_fields = ("content",)
     raw_id_fields = ("holiday",)
+    readonly_fields = ("get_image",)
 
 
 admin.site.register(Holiday, HolidayAdmin)

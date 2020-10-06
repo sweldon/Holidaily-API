@@ -272,3 +272,22 @@ class Post(models.Model):
     edited = models.DateTimeField(blank=True, null=True)
     image = models.TextField(blank=True, null=True)
     user_likes = models.ManyToManyField(User, related_name="liked_user")
+
+    def get_image(self):
+        if self.image:
+            return mark_safe(
+                '<img src="%s" width="%s" height="%s" />'
+                % (f"{self.image}", HOLIDAY_IMAGE_WIDTH, HOLIDAY_IMAGE_HEIGHT,)
+            )
+        return None
+
+    def get_image_small(self):
+        if self.image:
+            return mark_safe(
+                '<img src="%s" width="%s" height="%s" />'
+                % (f"{self.image}", HOLIDAY_IMAGE_WIDTH / 2, HOLIDAY_IMAGE_HEIGHT / 2,)
+            )
+        return None
+
+    get_image.short_description = "Image Preview"
+    get_image_small.short_description = "Image Preview"
