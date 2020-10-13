@@ -354,19 +354,32 @@ class HolidayList(generics.GenericAPIView):
 
         if search:
             is_date = False
+            date_val = None
             try:
                 search = re.match(
-                    r"\d{1,2}\/\d{1,2}\/\d{4}\s\d{1,2}:\d{1,2}:\d{1,2}\s(AM|PM)", search
+                    r"\d{1,2}\/\d{1,2}\/\d{4}\s\d{1,2}:\d{1,2}:\d{1,2}", search
                 ).group(0)
                 is_date = True
-            except AttributeError:
-                search = (
-                    search.lower().replace("national", "").replace("day", "").strip()
-                )
+                date_val = datetime.strptime(search.split(" ")[0], "%m/%d/%Y")
+            except:  # noqa
+                try:
+                    # European format
+                    search = re.match(
+                        r"\d{1,2}\.\d{1,2}\.\d{4}\s\d{1,2}:\d{1,2}:\d{1,2}", search
+                    ).group(0)
+                    is_date = True
+                    date_val = datetime.strptime(search.split(" ")[0], "%d.%m.%Y")
+                except:  # noqa
+                    search = (
+                        search.lower()
+                        .replace("national", "")
+                        .replace("day", "")
+                        .strip()
+                    )
 
             if is_date:
                 holidays = Holiday.objects.filter(
-                    Q(date=datetime.strptime(search.split(" ")[0], "%m/%d/%Y")),
+                    Q(date=date_val),
                     Q(active=True) | (Q(active=False) & Q(creator__isnull=True)),
                 )
             else:
@@ -419,13 +432,23 @@ class UserHolidays(HolidayList):
         pending_holidays = Holiday.objects.filter(
             creator__username=username, active=False
         ).exists()
+
         if submission:
+            existing_holiday = Holiday.objects.filter(
+                name__iexact=submission.strip()
+            ).exists()
             if pending_holidays:
                 results = {
-                    "status": HTTP_400_BAD_REQUEST,
-                    "message": "Submission already pending",
+                    "title": "Submission Pending",
+                    "message": "We are still reviewing your holiday",
                 }
-                return Response(results)
+                return Response(results, status=HTTP_400_BAD_REQUEST)
+            elif existing_holiday:
+                results = {
+                    "title": "Holiday Already Exists",
+                    "message": "Holidaily already has this holiday!",
+                }
+                return Response(results, status=HTTP_400_BAD_REQUEST)
             else:
                 image = request.FILES.get("file", None)
                 image_name = None
@@ -460,7 +483,7 @@ class UserHolidays(HolidayList):
                     "message": "Holiday submitted for review",
                     "status": HTTP_200_OK,
                 }
-                return Response(results)
+                return Response(results, status=HTTP_200_OK)
         else:
             results = {"results": pending_holidays}
             return Response(results)
