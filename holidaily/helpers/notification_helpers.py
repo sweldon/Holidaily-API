@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Union, Optional
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -16,6 +16,7 @@ from api.constants import (
     POST_NOTIFICATION,
     LIKE_NOTIFICATION,
     HOLIDAY_NOTIFICATION,
+    LIKE_COMMENT_NOTIFICATION,
 )
 from api.models import UserProfile, Comment, UserNotifications, Holiday, Post
 from holidaily.settings import SLACK_CLIENT
@@ -26,7 +27,7 @@ logger = logging.getLogger("holidaily")
 
 def add_notification(
     n_id: int, n_type: int, user: User, content: str, title: str
-) -> UserNotifications:
+) -> Optional[UserNotifications]:
     """
     Add a new notification for users
     :param n_id: notification id, pk
@@ -36,6 +37,10 @@ def add_notification(
     :param title: title of notification
     :return: the new notification
     """
+    if UserNotifications.objects.filter(
+        notification_id=n_id, notification_type=n_type, user=user
+    ).exists():
+        return
     new_notification = UserNotifications.objects.create(
         notification_id=n_id,
         notification_type=n_type,
@@ -150,11 +155,19 @@ def send_push_to_user(
             extra_data["push_type"] = "like"
             holiday_id = kwargs.get("holiday_id")
             holiday_name = kwargs.get("holiday_name")
-            post_id = kwargs.get("post_id")
             extra_data["holiday_id"] = holiday_id
             extra_data["holiday_name"] = holiday_name
-            # Currently only likes for post
-            extra_data["post_id"] = post_id
+
+            entity_id = kwargs.get("entity_id")
+            entity_type = kwargs.get("entity_type")
+            extra_data["entity_type"] = entity_type
+
+            if entity_type == "comment":
+                extra_data["comment_id"] = entity_id
+            else:
+                # todo legacy Currently only likes for post <=2.0.1
+                # todo this will be none if it's a comment like
+                extra_data["post_id"] = entity_id
         else:
             return False
     else:
@@ -246,7 +259,6 @@ def notify_mentioned_users(notification: Union[Comment, Post]) -> None:
         raise (f"Not a valid notification type: {type(notification_type)}")
 
     mentions = list(set(re.findall(r"@([^\s.,\?\"\'\;]+)", content)))
-    # notifications = []
     for user_mention in mentions:
         if user_mention == username:
             continue
@@ -270,27 +282,30 @@ def notify_mentioned_users(notification: Union[Comment, Post]) -> None:
                 send_email_to_user(user_to_notify, n)
 
 
-def notify_liked_user(obj: Post, user: User) -> bool:
+def notify_liked_user(obj: Union[Post, Comment], user: User) -> bool:
     """
     This should accept any entity that can be liked
     :param obj: The entity being liked
     :param user: The user that liked the entity
     :return: True/False depending on success
     """
+    entity = obj.__class__.__name__.lower()
+    notif_type = LIKE_NOTIFICATION if entity == "post" else LIKE_COMMENT_NOTIFICATION
     add_notification(
         obj.pk,
-        LIKE_NOTIFICATION,
+        notif_type,
         obj.user,
-        f"{user.username} liked your post on {obj.holiday.name}",
-        f"{user.username} liked your post",
+        f"{user.username} liked your {entity} on {obj.holiday.name}",
+        f"{user.username}",
     )
     push_sent = send_push_to_user(
         obj.user,
-        f"{user.username} liked your post!",
-        f"{user.username} liked your post on {obj.holiday.name}",
+        f"{user.username}",
+        f"{user.username} liked your {entity} on {obj.holiday.name}",
         "like",
         holiday_id=obj.holiday.id,
         holiday_name=obj.holiday.name,
-        post_id=obj.id,
+        entity_id=obj.id,
+        entity_type=entity,
     )
     return push_sent

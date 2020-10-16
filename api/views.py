@@ -64,6 +64,7 @@ from api.constants import (
     CONFETTI_COOLDOWN_MINUTES,
     POST_NOTIFICATION,
     LIKE_NOTIFICATION,
+    LIKE_COMMENT_NOTIFICATION,
 )
 from api.exceptions import RequestError, DeniedError
 import re
@@ -573,6 +574,25 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
         if "content" in data and data["content"] != updated_comment.content:
             data["edited"] = timezone.now()
 
+        if "like" in data:
+            liked = data["like"] in TRUTHY_STRS
+            current_likes = updated_comment.likes
+            author = UserProfile.objects.get(user=updated_comment.user)
+            if liked:
+                data["likes"] = current_likes + 1
+                author.confetti += 1
+                updated_comment.user_likes.add(profile.user)
+                # No need to notify if liking their own post
+                if updated_comment.user != profile.user:
+                    cache_key = f"comment_like_notification_{updated_comment.id}_{profile.user.id}"
+                    if not cache.get(cache_key):
+                        cache.set(cache_key, 1, 300)
+                        notify_liked_user(updated_comment, profile.user)
+            else:
+                data["likes"] = current_likes - 1
+                author.confetti -= 1
+                updated_comment.user_likes.remove(profile.user)
+
         serializer = self.get_serializer(self.get_object(), data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -648,6 +668,7 @@ class CommentList(generics.GenericAPIView):
     def get(self, request):
         holiday_id = request.GET.get("holiday", None)
         post_id = request.GET.get("post", None)
+        username = request.GET.get("username")
         if holiday_id:
             comments = Holiday.objects.get(id=holiday_id).comment_set.order_by("-votes")
         elif post_id:
@@ -655,7 +676,10 @@ class CommentList(generics.GenericAPIView):
             comments = Comment.objects.filter(parent_post=post)
         else:
             raise RequestError("Invalid query")
-        serializer = CommentSerializer(comments, many=True)
+
+        serializer = CommentSerializer(
+            comments, many=True, context={"username": username}
+        )
         results = {"results": serializer.data}
         return Response(results)
 
@@ -881,6 +905,8 @@ class UserNotificationsView(generics.GenericAPIView):
                 n_type = POST_NOTIFICATION
             elif mark_read_type == "like":
                 n_type = LIKE_NOTIFICATION
+            elif mark_read_type == "like_comment":
+                n_type = LIKE_COMMENT_NOTIFICATION
             # Can add more types in the future
             if n_type is not None:
                 notification = UserNotifications.objects.filter(

@@ -187,6 +187,19 @@ class CommentAdmin(admin.ModelAdmin):
         "reports",
         "parent",
     )
+    fields = (
+        "holiday",
+        "user",
+        "parent",
+        "deleted",
+        "parent_post",
+        "likes",
+        "votes",
+        "reports",
+        "edited",
+        "timestamp",
+        "content",
+    )
     search_fields = ("content", "holiday__name", "user__username")
     raw_id_fields = ("user", "holiday", "parent", "parent_post")
     readonly_fields = ("votes", "reports", "edited", "timestamp", "content")

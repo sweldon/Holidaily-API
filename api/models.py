@@ -132,7 +132,7 @@ class Holiday(models.Model):
         help_text="Will holiday appear in the app. If false, will still appear if no creator",
     )
     blurb = models.TextField(
-        null=True, help_text="Short description appearing in Holiday list"
+        blank=True, null=True, help_text="Short description appearing in Holiday list"
     )
     IMAGE_FORMATS = (("jpeg", "jpeg"), ("png", "png"))
     image_format = models.CharField(
@@ -201,6 +201,8 @@ class Comment(models.Model):
     parent_post = models.ForeignKey(
         "Post", null=True, blank=True, on_delete=models.CASCADE
     )
+    likes = models.IntegerField(default=0)
+    user_likes = models.ManyToManyField(User, related_name="liked_comments")
 
     @property
     def replies(self):
@@ -248,17 +250,6 @@ class UserNotifications(models.Model):
 
     def save(self, *args, **kwargs):
         super(UserNotifications, self).save(*args, **kwargs)
-        # TODO update this to new FCM/APNs format
-        # send_push_to_all_users or send_push_to_user(self.user)
-        # if self.notification_type in [NEWS_NOTIFICATION, HOLIDAY_NOTIFICATION]:
-        #     target = [self.user] if self.user else None
-        #     send_push(
-        #         title=self.title,
-        #         body=self.content,
-        #         notif_type=self.notification_type,
-        #         users=target,
-        #         notif_id=self.notification_id,
-        #     )
 
 
 class Post(models.Model):

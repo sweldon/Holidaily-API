@@ -26,6 +26,7 @@ from api.constants import (
     POST_NOTIFICATION,
     LIKE_NOTIFICATION,
     HOLIDAY_NOTIFICATION,
+    LIKE_COMMENT_NOTIFICATION,
 )
 from django.utils import timezone
 import humanize
@@ -175,6 +176,15 @@ class CommentSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
     time_since_edit = serializers.SerializerMethodField()
+    liked = serializers.SerializerMethodField()
+
+    def get_liked(self, obj):
+        username = self.context.get("username", None)
+        if username:
+            liked = obj.user_likes.filter(username=username).exists()
+            return liked
+        else:
+            return False
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
@@ -225,8 +235,11 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_replies(self, obj):
         # TODO limit this / pagination
+        username = self.context.get("username", None)
         replies = self._get_replies(obj)
-        return CommentSerializer(replies, many=True).data
+        return CommentSerializer(
+            replies, many=True, context={"username": username}
+        ).data
 
     class Meta:
         model = Comment
@@ -245,6 +258,8 @@ class CommentSerializer(serializers.ModelSerializer):
             "avatar",
             "replies",
             "time_since_edit",
+            "liked",
+            "likes",
         )
 
 
@@ -271,10 +286,6 @@ class HolidaySerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         return f"{CLOUDFRONT_DOMAIN}/{obj.image_name}"
-
-    # def get_time_since(self, obj):
-    #     time_ago = humanize.naturaltime(timezone.now().date() - obj.date)
-    #     return normalize_time(time_ago, "relative")
 
     def get_time_since(self, obj):
         if obj.date == timezone.now().date():
@@ -334,6 +345,8 @@ class UserNotificationsSerializer(serializers.ModelSerializer):
             return "Like"
         elif obj.notification_type == HOLIDAY_NOTIFICATION:
             return "Holiday"
+        elif obj.notification_type == LIKE_COMMENT_NOTIFICATION:
+            return "Comment"
 
     def get_holiday_id(self, obj):
         try:
@@ -462,7 +475,9 @@ class PostSerializer(serializers.ModelSerializer):
                 id__in=reported_comments
             )
         comments = comments.order_by("-id")
-        data = CommentSerializer(comments, many=True).data
+        data = CommentSerializer(
+            comments, many=True, context={"username": username}
+        ).data
         return data
 
     class Meta:
