@@ -22,9 +22,12 @@ class Command(BaseCommand):
         id = random_day.id
 
         # FCM/APNs logic
-        androids = GCMDevice.objects.all()
-        iphones = APNSDevice.objects.all()
+        androids = GCMDevice.objects.values("registration_id").distinct()
+        iphones = APNSDevice.objects.values("registration_id").distinct()
 
+        # todo set badge count to lambda for unique count per user. example:
+        # badge=lambda token: APNSDevice.objects.get(registration_id=token).user.get_badge()
+        # where get_badge() is a helper that returns 'unread' notifications value
         iphones.send_message(
             message={"title": day_name, "body": push},
             extra={"holiday_id": id, "holiday_name": day_name, "push_type": "holiday"},
