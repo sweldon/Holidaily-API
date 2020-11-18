@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from pathlib import Path
 
 import boto3
 import slack
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
     "push_notifications",
     "blacklist",
     "django_slack",
+    "shop",
 ]
 
 MIDDLEWARE = [
@@ -148,8 +150,7 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "holidailyapp@gmail.com"
 EMAIL_HOST_PASSWORD = os.environ["email_pass"]
 EMAIL_PORT = 587
-STATIC_ROOT = os.path.join(os.path.dirname(__file__), "../static")
-STATICFILES_DIRS = (("base", os.path.join(STATIC_ROOT, "base").replace("\\", "/")),)
+STATICFILES_DIRS = [Path(BASE_DIR).joinpath("static")]
 
 SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 SLACK_CLIENT = slack.WebClient(token=SLACK_TOKEN)
@@ -299,3 +300,8 @@ AWS_STORAGE_BUCKET_NAME = "holiday-images"
 
 FORCE_UDPATE_VAL = os.environ.get("FORCE_UPDATE")
 FORCE_UPDATE = True if FORCE_UDPATE_VAL in TRUTHY_STRS else False
+
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+
+SITE_DOMAIN = "http://localhost:8888" if DEBUG else "https://holidailyapp.com"
