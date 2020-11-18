@@ -5,12 +5,17 @@ from django.contrib.auth.models import User
 
 from api.models import UserProfile
 from holidaily.helpers.notification_helpers import send_push_to_user, send_email_to_user
+from django.core.cache import cache
 
 logger = getLogger("holidaily")
 
 
 @task()
 def confetti_notification(user_id: int) -> Tuple[bool, str]:
+    cache_key = f"confetti_alert_lock_{user_id}"
+    # Protection against accidental spam
+    if not cache.add(cache_key, 1, 60 * 10):
+        return False, "Cache lock triggered on confetti notification"
     user = User.objects.get(id=user_id)
     profile = UserProfile.objects.get(user=user)
     # Double check they haven't disabled it
