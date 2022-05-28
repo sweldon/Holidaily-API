@@ -1046,6 +1046,9 @@ class PostList(APIView):
     def get(self, request):
         holiday_id = request.GET.get("holiday_id")
         username = request.GET.get("username")
+        buzz = request.GET.get("buzz")
+        page = request.GET.get("page", 0)
+
         if holiday_id:
             h = Holiday.objects.filter(pk=holiday_id).first()
             if h:
@@ -1070,6 +1073,24 @@ class PostList(APIView):
                     "message": f"Holiday {holiday_id} does not exist",
                 }
                 return Response(results)
+        elif buzz:
+            # Buzz page: get posts and post comments
+            chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
+            today_posts = (
+                Post.objects
+                # Undeletd posts on active holidays only
+                .filter(deleted=False, holiday__active=True)
+                .order_by(
+                    "-timestamp",
+                    "-comment__timestamp"
+                )
+             )[chunk: chunk + settings.HOLIDAY_PAGE_SIZE]
+            serializer = PostSerializer(
+                today_posts, many=True, context={"username": username}
+            )
+            results = {"results": serializer.data}
+            return Response(results)
+
         raise RequestError("Please pass a holiday id")
 
     def post(self, request):
