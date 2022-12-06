@@ -2,7 +2,6 @@ import humanize
 import pytz
 from django.db.models import Q
 from django.forms import model_to_dict
-from elasticsearch_dsl import Search
 from push_notifications.models import APNSDevice, GCMDevice
 from rest_framework.decorators import api_view
 
@@ -148,7 +147,7 @@ class UserList(APIView):
             # Confetti leaderboard
             user_list = UserProfile.objects.filter(
                 confetti__gt=0, user__is_staff=False
-            ).order_by("confetti")[:50]
+            ).order_by("-confetti")[:50]
             serializer = UserProfileSerializer(
                 user_list, many=True, context={"requesting_user": requesting_user}
             )
@@ -935,34 +934,6 @@ class UserNotificationsView(generics.GenericAPIView):
         return Response(results)
 
 
-@api_view(["GET"])
-def tweets_view(request):
-    page = int(request.GET.get("page", 0))
-    TWEET_PAGE_SIZE = 30
-    s = Search(using=settings.ES_CLIENT, index=settings.TWEET_INDEX_NAME).sort(
-        "-twitter_id"
-    )
-    # total = s.count()
-    chunk = page * TWEET_PAGE_SIZE
-    # s = s[0:total]
-    s = s[chunk : chunk + TWEET_PAGE_SIZE]
-    hits = s.execute().hits
-    results = hits.hits
-    response = []
-    for hit in results:
-        h = hit["_source"].to_dict()
-        tweet_timestamp = h["timestamp"]
-        dt = datetime.strptime(tweet_timestamp, "%a %b %d %H:%M:%S +0000 %Y")
-        utc = dt.replace(tzinfo=pytz.UTC)
-        time_ago = humanize.naturaltime(datetime.now(timezone.utc) - utc)
-        time_since = normalize_time(time_ago, "precise", short=True)
-        h["timestamp"] = time_since
-        h["body"] = html.unescape(h["body"])
-        response.append(h)
-
-    return Response(response)
-
-
 class PostDetail(generics.RetrieveUpdateAPIView):
     serializer_class = PostSerializer
     permission_classes = [UpdateObjectPermission]
@@ -1046,6 +1017,9 @@ class PostList(APIView):
     def get(self, request):
         holiday_id = request.GET.get("holiday_id")
         username = request.GET.get("username")
+        buzz = request.GET.get("buzz")
+        page = request.GET.get("page", 0)
+
         if holiday_id:
             h = Holiday.objects.filter(pk=holiday_id).first()
             if h:
@@ -1070,6 +1044,24 @@ class PostList(APIView):
                     "message": f"Holiday {holiday_id} does not exist",
                 }
                 return Response(results)
+        elif buzz:
+            # Buzz page: get posts and post comments
+            chunk = int(page) * settings.HOLIDAY_PAGE_SIZE
+            today_posts = (
+                Post.objects
+                # Undeletd posts on active holidays only
+                .filter(deleted=False, holiday__active=True)
+                .order_by(
+                    "-timestamp",
+                    "-comment__timestamp"
+                )
+             )[chunk: chunk + settings.HOLIDAY_PAGE_SIZE]
+            serializer = PostSerializer(
+                today_posts, many=True, context={"username": username}
+            )
+            results = {"results": serializer.data}
+            return Response(results)
+
         raise RequestError("Please pass a holiday id")
 
     def post(self, request):

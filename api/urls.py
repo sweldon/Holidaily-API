@@ -19,7 +19,6 @@ urlpatterns = [
     path("search/", views.HolidayList.as_view(), name="search"),
     path("pending/", views.UserHolidays.as_view(), name="pending"),
     path("submit/", views.UserHolidays.as_view(), name="submit"),
-    path("tweets/", views.tweets_view, name="tweets_view"),
     path("posts/", views.PostList.as_view(), name="post_list"),
     path("posts/<int:pk>/", views.PostDetail.as_view(), name="post_detail"),
 ]

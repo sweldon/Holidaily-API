@@ -1,6 +1,6 @@
 from logging import getLogger
 from typing import Tuple
-from celery.decorators import task
+from celery import shared_task
 from django.contrib.auth.models import User
 
 from api.models import UserProfile
@@ -10,7 +10,7 @@ from django.core.cache import cache
 logger = getLogger("holidaily")
 
 
-@task()
+@shared_task
 def confetti_notification(user_id: int) -> Tuple[bool, str]:
     cache_key = f"confetti_alert_lock_{user_id}"
     # Protection against accidental spam

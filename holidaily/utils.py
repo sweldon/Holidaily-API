@@ -23,7 +23,10 @@ def normalize_time(time_ago: str, time_type: str, short=False) -> str:
                 .replace("a day ago", "1d")
                 .replace("year ago", "y")
                 .replace("years ago", "y")
+                .replace("year", "y")
+                .replace("months ago", "mo")
                 .replace(" ", "")
+                .replace(",", ", ")
             )
         return time_ago
     elif time_type == "relative":

@@ -150,7 +150,7 @@ class UserRegisterView(generics.GenericAPIView):
                 email_is_valid = validate_email(
                     email_address=email,
                     check_regex=True,
-                    check_mx=True,
+                    check_mx=False,
                     from_address=EMAIL_HOST_USER,
                     helo_host=EMAIL_HOST,
                     smtp_timeout=10,
