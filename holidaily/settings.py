@@ -16,11 +16,13 @@ import boto3
 import slack
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import twitter
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from api.constants import TRUTHY_STRS
+
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,6 +43,7 @@ ALLOWED_HOSTS = [
     "holidailyapp.com",
     "www.holidailyapp.com",
     "52.6.245.91",
+	"dev.holidailyapp.com"
 ]
 
 # Application definition
@@ -191,43 +194,6 @@ PUSH_NOTIFICATIONS_SETTINGS = {
 UPDATE_ALERT = False if os.environ.get("UPDATE_ALERT") == "False" else True
 VALIDATE_EMAIL = False if DEBUG else True
 
-# Elasticsearch
-ELASTICSEARCH_URL = (
-    "vpc-holidaily-whftt656ee67zuxz22fqk2euny.us-east-1.es.amazonaws.com"
-    if not DEBUG
-    else "localhost"
-)
-ELASTICSEARCH_PORT = 443 if not DEBUG else 9200
-
-session = boto3.session.Session()
-credentials = session.get_credentials().get_frozen_credentials()
-
-AWS_AUTH = BotoAWSRequestsAuth(
-    aws_host=ELASTICSEARCH_URL, aws_region="us-east-1", aws_service="es"
-)
-
-ES_CLIENT = Elasticsearch(
-    hosts=[{"host": ELASTICSEARCH_URL, "port": ELASTICSEARCH_PORT}],
-    http_auth=AWS_AUTH,
-    use_ssl=True,
-    verify_certs=True if not DEBUG else False,
-    connection_class=RequestsHttpConnection,
-)
-
-TWEET_INDEX_NAME = "tweets"
-
-TWITTER_API_KEY = os.environ["TWITTER_API_KEY"]
-TWITTER_API_SECRET = os.environ["TWITTER_API_SECRET"]
-TWITTER_ACCESS_TOKEN = os.environ["TWITTER_ACCESS_TOKEN"]
-TWITTER_ACCESS_SECRET = os.environ["TWITTER_ACCESS_SECRET"]
-TWITTER_CLIENT = twitter.Api(
-    consumer_key=TWITTER_API_KEY,
-    consumer_secret=TWITTER_API_SECRET,
-    access_token_key=TWITTER_ACCESS_TOKEN,
-    access_token_secret=TWITTER_ACCESS_SECRET,
-    tweet_mode="extended",
-)
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -280,7 +246,7 @@ except KeyError:
 
 
 # CELERY STUFF
-BROKER_URL = "redis://localhost:6379"
+CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -288,9 +254,9 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "America/New_York"
 
 CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
-        "LOCATION": "127.0.0.1:11211",
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '127.0.0.1:11211',
     }
 }
 

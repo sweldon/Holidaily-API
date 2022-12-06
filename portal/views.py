@@ -9,7 +9,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.template import loader
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.shortcuts import resolve_url
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -55,7 +55,7 @@ def unsubscribe(request):
 def activate(request, uidb64, token):
     account_activation_token = TokenGenerator()
     try:
-        uid = force_text(urlsafe_base64_decode(uidb64))
+        uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.filter(pk=uid)[0]
     except IndexError:
         user = None
@@ -127,7 +127,7 @@ def password_reset_page(
         post_reset_redirect = resolve_url(post_reset_redirect)
     try:
         # urlsafe_base64_decode() decodes to bytestring
-        uid = force_text(urlsafe_base64_decode(uidb64))
+        uid = force_str(urlsafe_base64_decode(uidb64))
         user = user_model._default_manager.get(pk=uid)
     except (TypeError, ValueError, OverflowError, user_model.DoesNotExist):
         user = None

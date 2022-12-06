@@ -107,3 +107,9 @@ venv.bak/
 *.p8
 
 *.DS_Store
+
+static/
+venv*/
+
+.swp
+.swo
