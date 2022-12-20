@@ -188,7 +188,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_time_since(self, obj):
         time_ago = humanize.naturaltime(timezone.now() - obj.timestamp)
-        return normalize_time(time_ago, "precise")
+        return normalize_time(time_ago, "precise", short=True)
 
     def get_time_since_edit(self, obj):
         if obj.edited:
@@ -420,6 +420,7 @@ class PostSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
+    holiday_name = serializers.SerializerMethodField()
 
     def get_user(self, obj):
         return obj.user.username
@@ -479,6 +480,9 @@ class PostSerializer(serializers.ModelSerializer):
             comments, many=True, context={"username": username}
         ).data
         return data
+
+    def get_holiday_name(self, obj):
+        return obj.holiday.name
 
     class Meta:
         model = Post
