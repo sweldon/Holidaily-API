@@ -161,6 +161,13 @@ def password_reset_page(
 
     return TemplateResponse(request, template_name, context)
 
-
 def password_reset_complete(request):
     return render(request, "portal/password_reset_complete.html", status=200)
+
+
+def terms_of_use(request):
+    return render(request, "portal/terms.html")
+
+
+def eula(request):
+    return render(request, "portal/eula.html")

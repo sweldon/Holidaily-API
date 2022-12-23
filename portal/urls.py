@@ -6,6 +6,8 @@ from portal.views import (
     password_reset_complete,
     password_reset_page,
     unsubscribe,
+    terms_of_use,
+    eula
 )
 
 urlpatterns = [
@@ -22,4 +24,6 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path(r"unsubscribe/", unsubscribe, name="unsubscribe",),
+    path(r"terms/", terms_of_use, name="terms"),
+    path(r"eula/", eula, name="eula"),
 ]
