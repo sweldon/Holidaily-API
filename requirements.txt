@@ -17,7 +17,7 @@ python-twitter==3.5
 aws-requests-auth==0.4.3
 elasticsearch==7.8.1
 elasticsearch-dsl==7.2.1
-celery==4.4.7
+celery==5.2.2
 redis==3.5.3
 python-memcached==1.59
 django-slack==5.15.2
